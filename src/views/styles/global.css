@@ -8,7 +8,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 300 700;
-  src: url('/fonts/cal-sans-ui-variable.woff2') format('woff2-variations');
+  src: url('../../../public/fonts/cal-sans-ui-variable.woff2') format('woff2-variations');
 }
 
 @font-face {
@@ -16,7 +16,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 500;
-  src: url('/fonts/cal-sans-display-medium.woff2') format('woff2');
+  src: url('../../../public/fonts/cal-sans-display-medium.woff2') format('woff2');
 }
 
 @font-face {
@@ -24,7 +24,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url('/fonts/cal-sans-display-semibold.woff2') format('woff2');
+  src: url('../../../public/fonts/cal-sans-display-semibold.woff2') format('woff2');
 }
 
 .typeset-docs {
