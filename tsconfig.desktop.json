@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.server.json",
+	"compilerOptions": {
+		"outDir": "dist/desktop",
+		"rootDir": "src",
+		"types": ["node", "electron"]
+	},
+	"include": [
+		"src/desktop/**/*.ts",
+		"src/runtime/**/*.ts",
+		"src/**/*.d.ts"
+	]
+}
