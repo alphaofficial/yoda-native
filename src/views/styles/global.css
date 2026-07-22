@@ -1,17 +1,508 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "./typeset.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@font-face {
+  font-family: 'Cal Sans UI';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 700;
+  src: url('/fonts/cal-sans-ui-variable.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Cal Sans Display';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('/fonts/cal-sans-display-medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Cal Sans Display';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/cal-sans-display-semibold.woff2') format('woff2');
+}
+
+.typeset-docs {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-heading);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 15px;
+  --typeset-leading: 1.6;
+  --typeset-flow: 1em;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * {
+    border-color: var(--border);
+    @apply border-border outline-ring/50;
+  }
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 420ms ease-in, color 420ms ease-in;
+    @apply bg-background text-foreground;
+  }
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 420ms ease-in, color 420ms ease-in;
+    @apply font-sans;
+  }
+
+  *, ::before, ::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 420ms;
+    transition-timing-function: ease-in;
+  }
+
+  html.theme-changing *, html.theme-changing ::before, html.theme-changing ::after {
+    transition-property: background-color, border-color, color, fill, stroke !important;
+    transition-duration: 420ms !important;
+    transition-timing-function: ease-in !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer components {
+  .display-heading {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+
+  .page-heading {
+    font-size: 36px;
+    line-height: 1.15;
+    letter-spacing: -1px;
+  }
+
+  .dashboard-shell {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding: var(--spacing-xl);
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--spacing-xl);
+  }
+
+  .dashboard-main {
+    grid-column: span 8 / span 8;
+    min-width: 0;
+  }
+
+  .dashboard-sidebar {
+    grid-column: span 4 / span 4;
+    min-width: 0;
+  }
+
+  .cluster-split {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .settings-shell {
+    width: min(1200px, 100%);
+    margin-inline: auto;
+    padding: var(--spacing-xl);
+  }
+
+  .settings-header {
+    display: grid;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .settings-header > :first-child {
+    justify-self: start;
+  }
+
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: var(--spacing-xl);
+    align-items: start;
+  }
+
+  .settings-sidebar {
+    position: sticky;
+    top: var(--spacing-xl);
+    padding: var(--spacing-xs);
+    background: var(--muted);
+  }
+
+  .settings-nav-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 0.5rem 0.875rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .settings-nav-item svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .settings-nav-item[data-active="true"] {
+    color: var(--foreground);
+    background: var(--background);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  }
+
+  .settings-content {
+    min-width: 0;
+  }
+
+  .settings-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-lg);
+    min-width: 0;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+
+  .settings-panel > * {
+    min-width: 0;
+  }
+
+  .settings-section-title {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+
+  .settings-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-md);
+  }
+
+
+  .settings-message {
+    margin-top: var(--spacing-md);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
+  .shortcut-sort-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-xs);
+    min-height: 2rem;
+  }
+
+  .shortcut-settings-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    min-width: 0;
+  }
+
+  .shortcut-sort-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border);
+    background: var(--background);
+    cursor: grab;
+  }
+
+  .shortcut-sort-item:active {
+    cursor: grabbing;
+  }
+
+  .shortcut-sort-item[data-static="true"],
+  .shortcut-sort-item[data-static="true"]:active {
+    cursor: default;
+  }
+
+  .shortcut-sort-item[data-dragging="true"] {
+    opacity: 0.45;
+  }
+
+  .shortcut-drag-handle {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    color: var(--muted-foreground);
+  }
+
+  .bookmark-dialog {
+    max-height: 85vh;
+    overflow: hidden;
+  }
+
+  .bookmark-list {
+    display: grid;
+    gap: 0.25rem;
+    max-height: 45vh;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .bookmark-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+  }
+
+  .repository-picker {
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .repository-option {
+    display: flex;
+    min-height: 2.5rem;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    cursor: pointer;
+  }
+
+  @media (max-width: 768px) {
+	.page-heading {
+	  font-size: 32px;
+	  line-height: 1.15;
+	  letter-spacing: -1px;
+	}
+    .dashboard-shell {
+      padding: var(--spacing-lg);
+    }
+
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    .dashboard-main,
+    .dashboard-sidebar {
+      grid-column: span 1 / span 1;
+    }
+
+    .settings-shell {
+      padding: var(--spacing-lg);
+    }
+
+    .settings-layout {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    .settings-sidebar {
+      position: static;
+    }
+
+    .settings-sidebar nav {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .settings-nav-item {
+      justify-content: center;
+    }
+
+    .settings-panel {
+      padding: var(--spacing-lg);
+    }
+
+    .settings-form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .settings-mobile-stack {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .settings-mobile-stack > .settings-action {
+      align-self: flex-start;
+    }
+
+    .settings-save-action > * {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .page-heading {
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .dashboard-shell,
+    .settings-shell {
+      padding: var(--spacing-md);
+    }
+
+    .settings-panel {
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+    }
+
+    .settings-nav-item {
+      flex-direction: column;
+      gap: 0.25rem;
+      padding-inline: 0.25rem;
+    }
+
+  }
+}
+
+@theme inline {
+	--github-pr-open: #1a7f37;
+	--github-pr-draft: #59636e;
+	--github-pr-merged: #8250df;
+	--github-pr-closed: #d1242f;
+  --font-heading: 'Cal Sans Display', 'Cal Sans UI', -apple-system, BlinkMacSystemFont, system-ui, 'Helvetica Neue', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, system-ui, 'Helvetica Neue', 'Cal Sans UI', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
+  --radius-4xl: 16px;
+}
 
 :root {
-	font-family:
-		-apple-system,
-		BlinkMacSystemFont,
-		'Segoe UI',
-		Roboto,
-		'Helvetica Neue',
-		Arial,
-		sans-serif;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	text-rendering: optimizeLegibility;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-section: 6rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.148 0.004 228.8);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.148 0.004 228.8);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.148 0.004 228.8);
+  --primary: oklch(0.148 0.004 228.8);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.963 0.002 197.1);
+  --muted-foreground: oklch(0.56 0.021 213.5);
+  --accent: oklch(0.963 0.002 197.1);
+  --accent-foreground: oklch(0.218 0.008 223.9);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.925 0.005 214.3);
+  --input: oklch(0.925 0.005 214.3);
+  --ring: oklch(0.148 0.004 228.8);
+  --chart-1: oklch(0.865 0.127 207.078);
+  --chart-2: oklch(0.715 0.143 215.221);
+  --chart-3: oklch(0.609 0.126 221.723);
+  --chart-4: oklch(0.52 0.105 223.128);
+  --chart-5: oklch(0.45 0.085 224.283);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.987 0.002 197.1);
+  --sidebar-foreground: oklch(0.148 0.004 228.8);
+  --sidebar-primary: oklch(0.609 0.126 221.723);
+  --sidebar-primary-foreground: oklch(0.984 0.019 200.873);
+  --sidebar-accent: oklch(0.963 0.002 197.1);
+  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
+  --sidebar-border: oklch(0.925 0.005 214.3);
+  --sidebar-ring: oklch(0.723 0.014 214.4);
+}
+
+.dark {
+  --background: oklch(0.148 0.004 228.8);
+  --foreground: oklch(0.987 0.002 197.1);
+  --card: oklch(0.218 0.008 223.9);
+  --card-foreground: oklch(0.987 0.002 197.1);
+  --popover: oklch(0.218 0.008 223.9);
+  --popover-foreground: oklch(0.987 0.002 197.1);
+  --primary: oklch(0.45 0.085 224.283);
+  --primary-foreground: oklch(0.984 0.019 200.873);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.275 0.011 216.9);
+  --muted-foreground: oklch(0.723 0.014 214.4);
+  --accent: oklch(0.275 0.011 216.9);
+  --accent-foreground: oklch(0.987 0.002 197.1);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.56 0.021 213.5);
+  --chart-1: oklch(0.865 0.127 207.078);
+  --chart-2: oklch(0.715 0.143 215.221);
+  --chart-3: oklch(0.609 0.126 221.723);
+  --chart-4: oklch(0.52 0.105 223.128);
+  --chart-5: oklch(0.45 0.085 224.283);
+  --sidebar: oklch(0.218 0.008 223.9);
+  --sidebar-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-primary: oklch(0.715 0.143 215.221);
+  --sidebar-primary-foreground: oklch(0.302 0.056 229.695);
+  --sidebar-accent: oklch(0.275 0.011 216.9);
+  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.56 0.021 213.5);
 }

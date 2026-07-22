@@ -1,0 +1,27 @@
+{
+	"displayName": "Albert",
+	"timeZone": "Europe/London",
+	"shortcutLimit": 8,
+	"github": {
+		"windowDays": 7,
+		"repositoryScopes": []
+	},
+	"shortcutGroups": [
+		{
+			"id": "shortcuts",
+			"label": "Quick links",
+			"shortcuts": [
+				{
+					"id": "jira",
+					"label": "Jira board",
+					"url": "https://example.atlassian.net/jira/your-work"
+				},
+				{
+					"id": "obsidian",
+					"label": "Obsidian vault",
+					"url": "obsidian://open"
+				}
+			]
+		}
+	]
+}

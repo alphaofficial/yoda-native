@@ -6,8 +6,6 @@ import { app, BrowserWindow, shell } from 'electron';
 
 import type { RunningHttpServer } from '@/runtime/startHttpServer';
 
-import { registerAudioIpc, unregisterAudioIpc } from './ipc/audio';
-
 let mainWindow: BrowserWindow | null = null;
 let runningServer: RunningHttpServer | null = null;
 let isQuitting = false;
@@ -62,8 +60,6 @@ async function createMainWindow(applicationUrl: string): Promise<void> {
 }
 
 async function stopApplication(): Promise<void> {
-	unregisterAudioIpc();
-
 	if (runningServer) {
 		await runningServer.stop();
 		runningServer = null;
@@ -75,6 +71,15 @@ async function bootstrap(): Promise<void> {
 
 	process.env.APPLICATION_ROOT = app.getAppPath();
 	process.env.APPLICATION_DATA_ROOT = app.getPath('userData');
+	process.env.PATH = Array.from(new Set([
+		'/opt/homebrew/bin',
+		'/usr/local/bin',
+		'/usr/bin',
+		'/bin',
+		'/usr/sbin',
+		'/sbin',
+		...(process.env.PATH ?? '').split(':').filter(Boolean),
+	])).join(':');
 	process.chdir(app.getAppPath());
 
 	const { startHttpServer } = await import('@/runtime/startHttpServer');
@@ -82,7 +87,6 @@ async function bootstrap(): Promise<void> {
 	runningServer = await startHttpServer();
 	const applicationUrl = new URL(runningServer.url);
 
-	registerAudioIpc(applicationUrl);
 	await createMainWindow(applicationUrl.toString());
 
 	app.on('activate', () => {

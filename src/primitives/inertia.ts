@@ -35,6 +35,20 @@ type SsrPayload = { head: string[]; body: string };
 type SsrModule = { render: (page: unknown) => Promise<SsrPayload | void> };
 const importSsrModule = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<SsrModule>;
 
+function pageTheme(page: unknown): string {
+	const props = page && typeof page === 'object' && 'props' in page ? (page as { props?: unknown }).props : null;
+	if (!props || typeof props !== 'object') return 'light';
+	const directTheme = 'theme' in props ? (props as { theme?: unknown }).theme : null;
+	const dashboard = 'dashboard' in props ? (props as { dashboard?: unknown }).dashboard : null;
+	const dashboardTheme = dashboard && typeof dashboard === 'object' && 'theme' in dashboard ? (dashboard as { theme?: unknown }).theme : null;
+	const theme = directTheme ?? dashboardTheme;
+	return theme === 'dark' || theme === 'system' ? theme : 'light';
+}
+
+function resolvedThemeClass(theme: string): string {
+	return theme === 'dark' ? 'dark' : '';
+}
+
 async function loadSsrModule(): Promise<SsrModule> {
 	const mtime = fs.statSync(ssrBundlePath).mtimeMs;
 	const url = `${pathToFileURL(ssrBundlePath).href}?v=${mtime}`;
@@ -117,6 +131,7 @@ export class InertiaExpressAdapter {
 
 export async function renderHtml(page: unknown, title?: string, head?: string): Promise<string> {
 	const ssr = variables.DISABLE_SSR ? null : await renderOnSsr(page);
+	const theme = pageTheme(page);
 
 	const template = fs.readFileSync(templatePath, 'utf-8');
 	const app = ssr
@@ -125,6 +140,8 @@ export async function renderHtml(page: unknown, title?: string, head?: string): 
 	const headContent = [head || '', ssr ? ssr.head.join('\n') : ''].filter(Boolean).join('\n');
 
 	return template
+		.replace('{{HTML_CLASS}}', resolvedThemeClass(theme))
+		.replace('{{THEME}}', escapeHtml(theme))
 		.replace('{{TITLE}}', escapeHtml(title || variables.APP_NAME))
 		.replace('{{HEAD}}', headContent)
 		.replace('{{APP}}', () => app)

@@ -1,85 +1,68 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
+import GreetingHeader from '@/views/components/dashboard/GreetingHeader';
+import PullRequestPanel from '@/views/components/dashboard/PullRequestPanel';
+import ShortcutPanel from '@/views/components/dashboard/ShortcutPanel';
+import type { DashboardResponse } from '@/types/dashboard';
+import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-interface Props {
-	applicationName: string;
-	isAuthenticated?: boolean;
+function resolveTheme(theme: DashboardResponse['theme']): 'light' | 'dark' {
+	if (theme === 'dark') return 'dark';
+	if (theme === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	return 'light';
 }
 
-const CARDS = [
-	{
-		title: 'Developer Guide',
-		description: 'Add controllers, pages, models, migrations, and auth.',
-		href: 'https://github.com/alphaofficial/theboringarchitecture/blob/main/README.md#building-features',
-	},
-	{
-		title: 'GitHub',
-		description: 'Source, issues, and release notes.',
-		href: 'https://github.com/alphaofficial/theboringarchitecture',
-	},
-];
+function applyTheme(theme: DashboardResponse['theme']) {
+	const resolvedTheme = resolveTheme(theme);
+	document.documentElement.classList.add('theme-changing');
+	document.documentElement.dataset.theme = theme ?? 'light';
+	document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+	window.setTimeout(() => document.documentElement.classList.remove('theme-changing'), 450);
+}
 
-export default function Home({ applicationName, isAuthenticated }: Props) {
+interface PageProps extends InertiaPageProps {
+	applicationName: string;
+	dashboard: DashboardResponse;
+	pullRequestFilterState: string | null;
+}
+
+export default function Home() {
+	const { props } = usePage<PageProps>();
+	const { applicationName, dashboard, pullRequestFilterState } = props;
+
+	useEffect(() => {
+		applyTheme(dashboard.theme);
+		if (dashboard.theme !== 'system') return;
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		const updateTheme = () => applyTheme(dashboard.theme);
+		media.addEventListener('change', updateTheme);
+		return () => media.removeEventListener('change', updateTheme);
+	}, [dashboard.theme]);
+
 	return (
 		<>
-			<Head>
-				<title>{applicationName}</title>
-			</Head>
-			<div className="min-h-screen bg-white text-gray-900 antialiased">
-				<header className="border-b border-gray-200">
-					<div className="mx-auto max-w-3xl px-6 py-5 flex items-center justify-between">
-						<div className="flex items-center gap-x-3">
-							<span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-gray-900 text-white text-sm font-bold">
-								{applicationName.charAt(0)}
-							</span>
-							<span className="text-base font-bold tracking-tight">{applicationName}</span>
-						</div>
-						<nav className="flex items-center gap-x-6 text-sm font-semibold text-gray-700">
-							{isAuthenticated ? (
-								<Link href="/home" className="hover:text-gray-900">
-									Dashboard
-								</Link>
-							) : (
-								<>
-									<Link href="/login" className="hover:text-gray-900">
-										Log in
-									</Link>
-									<Link
-										href="/register"
-										className="rounded-sm bg-gray-900 px-3 py-1.5 text-white hover:bg-black"
-									>
-										Register
-									</Link>
-								</>
-							)}
-						</nav>
-					</div>
-				</header>
+			<Head title={`${applicationName} Dashboard`} />
+			<div className="min-h-screen bg-background text-foreground antialiased">
+				<main className="dashboard-shell">
+					<GreetingHeader dashboard={dashboard} />
 
-				<main className="mx-auto max-w-3xl px-6 py-24">
-					<h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-						Welcome to {applicationName}
-					</h1>
-					<p className="mt-4 text-lg text-gray-600">
-						Your app is up and running. Pick a starting point below.
-					</p>
-					<div className="mt-12 grid gap-6 sm:grid-cols-2">
-						{CARDS.map((c) => (
-							<a
-								key={c.title}
-								href={c.href}
-								className="group block rounded-md border border-gray-200 p-6 transition hover:border-gray-900"
-							>
-								<h2 className="text-base font-bold text-gray-900">{c.title}</h2>
-								<p className="mt-2 text-sm text-gray-600">{c.description}</p>
-								<span className="mt-4 inline-block text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-gray-900">
-									Open →
-								</span>
-							</a>
-						))}
+					<div className="dashboard-grid">
+						<section
+							className="dashboard-main"
+							aria-label="Dashboard content"
+						>
+							<PullRequestPanel pullRequests={dashboard.pullRequests} persistedFilterState={pullRequestFilterState} />
+						</section>
+						<aside
+							className="dashboard-sidebar"
+							aria-label="Sidebar"
+						>
+							<ShortcutPanel
+								shortcutGroups={dashboard.shortcutGroups}
+								limit={dashboard.shortcutLimit ?? 8}
+							/>
+						</aside>
 					</div>
-					<p className="mt-12 text-sm text-gray-500">
-						Edit <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">src/views/pages/Home.tsx</code> and save to reload.
-					</p>
 				</main>
 			</div>
 		</>

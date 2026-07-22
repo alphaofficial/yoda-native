@@ -7,6 +7,15 @@ function expectedHost(): string {
   return new URL(variables.APP_URL).host;
 }
 
+function requestHost(req: Request): string | null {
+  const host = req.get('Host');
+  return host && host.length > 0 ? host : null;
+}
+
+function isAllowedHost(req: Request, host: string): boolean {
+  return host === expectedHost() || host === requestHost(req);
+}
+
 // Defense against cross-site request forgery via Origin-header verification.
 //
 // Rule: on a state-changing request, if `Origin` or `Referer` is present, it
@@ -22,7 +31,7 @@ export function verifyOrigin(req: Request, res: Response, next: NextFunction) {
 
   try {
     const host = new URL(origin).host;
-    if (host !== expectedHost()) {
+    if (!isAllowedHost(req, host)) {
       return res.status(403).send('Forbidden');
     }
   } catch {

@@ -55,13 +55,14 @@ env.oneOf = <T extends string>(key: string, values: readonly T[], fallback: T): 
 const variables = {
 	NODE_ENV: env.oneOf('NODE_ENV', ['development', 'production', 'test'] as const, 'development'),
 	PORT: env.int('PORT', 3008),
-	APP_NAME: env('APP_NAME', 'The Boring Architecture')!,
+	APP_NAME: env('APP_NAME', 'Yoda')!,
 	APP_URL: env('APP_URL', 'http://localhost:3000')!,
 	TRUST_PROXY: env('TRUST_PROXY', 'loopback')!,
 	APP_KEY: env('APP_KEY'),
 	SESSION_SECRET: env('SESSION_SECRET'),
 	SESSION_MAX_AGE: env.int('SESSION_MAX_AGE', 24 * 60 * 60 * 1000),
-	DB_PATH: env('DB_PATH'),
+	DB_PATH: env('DB_PATH', 'yoda.db')!,
+	BACKUP_PATH: env('BACKUP_PATH', 'backups')!,
 	RATE_LIMIT_ENABLED: env.bool('RATE_LIMIT_ENABLED', false),
 	RATE_LIMIT_AUTH_MAX: env.int('RATE_LIMIT_AUTH_MAX', 5),
 	RATE_LIMIT_AUTH_WINDOW_MS: env.int('RATE_LIMIT_AUTH_WINDOW_MS', 60_000),
@@ -76,6 +77,39 @@ const variables = {
 	MAIL_USER: env('MAIL_USER'),
 	MAIL_PASS: env('MAIL_PASS'),
 	DISABLE_SSR: env.bool('DISABLE_SSR', false),
+	DASHBOARD_CONFIG_PATH: env('DASHBOARD_CONFIG_PATH', 'config/dashboard.json')!,
+	DASHBOARD_CACHE_TTL_SECONDS: (() => {
+		const raw = envValue('DASHBOARD_CACHE_TTL_SECONDS');
+		const value = raw ? Number(raw) : 900;
+		if (Number.isNaN(value) || !Number.isInteger(value) || value < 5 || value > 3600) {
+			throw new Error('DASHBOARD_CACHE_TTL_SECONDS must be an integer from 5 to 3600');
+		}
+		return value;
+	})(),
+	GITHUB_REPOSITORY_CACHE_TTL_SECONDS: (() => {
+		const raw = envValue('GITHUB_REPOSITORY_CACHE_TTL_SECONDS');
+		const value = raw ? Number(raw) : 86_400;
+		if (Number.isNaN(value) || !Number.isInteger(value) || value < 60 || value > 86400) {
+			throw new Error('GITHUB_REPOSITORY_CACHE_TTL_SECONDS must be an integer from 60 to 86400');
+		}
+		return value;
+	})(),
+	DASHBOARD_REQUEST_TIMEOUT_MS: (() => {
+		const raw = envValue('DASHBOARD_REQUEST_TIMEOUT_MS');
+		const value = raw ? Number(raw) : 5000;
+		if (Number.isNaN(value) || !Number.isInteger(value) || value < 1000 || value > 30000) {
+			throw new Error('DASHBOARD_REQUEST_TIMEOUT_MS must be an integer from 1000 to 30000');
+		}
+		return value;
+	})(),
+	DASHBOARD_RETRY_COUNT: (() => {
+		const raw = envValue('DASHBOARD_RETRY_COUNT');
+		const value = raw ? Number(raw) : 2;
+		if (Number.isNaN(value) || !Number.isInteger(value) || value < 0 || value > 4) {
+			throw new Error('DASHBOARD_RETRY_COUNT must be an integer from 0 to 4');
+		}
+		return value;
+	})(),
 };
 
 if (!variables.SESSION_SECRET) {
