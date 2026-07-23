@@ -11,6 +11,12 @@
     ],
     "@semantic-release/release-notes-generator",
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version && npm run desktop:package"
+      }
+    ],
+    [
       "@semantic-release/github",
       {
         "assets": [
@@ -22,7 +28,10 @@
             "path": "dist/*.zip",
             "label": "Yoda macOS ZIP"
           }
-        ]
+        ],
+        "successComment": false,
+        "failComment": false,
+        "releasedLabels": false
       }
     ]
   ]

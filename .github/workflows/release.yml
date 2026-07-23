@@ -28,9 +28,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Package desktop app
-        run: npm run desktop:package
-
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,4 +37,5 @@ jobs:
             --package @semantic-release/github \
             --package @semantic-release/commit-analyzer \
             --package @semantic-release/release-notes-generator \
+            --package @semantic-release/exec \
             semantic-release
