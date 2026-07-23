@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/views/compon
 import { Input } from '@/views/components/ui/input';
 import { Label } from '@/views/components/ui/label';
 import { Select } from '@/views/components/ui/select';
+import { applySoundPreference, playSound } from '@/views/lib/sounds';
 import type { GitHubRepository, GitHubRepositoryCatalog, ShortcutGroupConfig, ShortcutItem, ThemePreference, TimeFormat } from '@/types/dashboard';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -34,6 +35,7 @@ interface SettingsData {
 	timeZone: string;
 	timeFormat: TimeFormat;
 	theme: ThemePreference;
+	soundsEnabled: boolean;
 	shortcutLimit: number;
 	backupIntervalHours: number;
 	backupRetentionDays: number;
@@ -370,6 +372,7 @@ export default function Settings() {
 	const [timeZone, setTimeZone] = useState(settings.timeZone);
 	const [timeFormat, setTimeFormat] = useState<TimeFormat>(settings.timeFormat ?? '12');
 	const [theme, setTheme] = useState<ThemePreference>(settings.theme ?? 'light');
+	const [soundsEnabled, setSoundsEnabled] = useState(settings.soundsEnabled ?? false);
 	const [shortcutLimit, setShortcutLimit] = useState(settings.shortcutLimit);
 	const [backupIntervalHours, setBackupIntervalHours] = useState(settings.backupIntervalHours);
 	const [backupRetentionDays, setBackupRetentionDays] = useState(settings.backupRetentionDays);
@@ -401,6 +404,7 @@ export default function Settings() {
 		setTimeZone(next.timeZone);
 		setTimeFormat(next.timeFormat);
 		setTheme(next.theme);
+		setSoundsEnabled(next.soundsEnabled);
 		setShortcutLimit(next.shortcutLimit);
 		setBackupIntervalHours(next.backupIntervalHours);
 		setBackupRetentionDays(next.backupRetentionDays);
@@ -441,6 +445,10 @@ export default function Settings() {
 	}, [activeSection]);
 
 	useEffect(() => {
+		applySoundPreference(soundsEnabled);
+	}, [soundsEnabled]);
+
+	useEffect(() => {
 		applyTheme(theme);
 		if (theme !== 'system') return;
 		const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -460,9 +468,12 @@ export default function Settings() {
 	const saveGeneral = () => {
 		setSaving(true);
 		setMessage('');
-		router.patch('/settings?section=general', { displayName, timeZone, timeFormat, theme }, {
+		router.patch('/settings?section=general', { displayName, timeZone, timeFormat, theme, soundsEnabled }, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
 			onError: () => setMessage('Could not save general settings.'),
 			onFinish: () => setSaving(false),
 		});
@@ -766,11 +777,18 @@ export default function Settings() {
 													<option value="light">Light</option>
 													<option value="dark">Dark</option>
 													<option value="system">System</option>
-												</Select>
-												<ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-											</div>
-										</div>
+										</Select>
+										<ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
 									</div>
+								</div>
+								<div className="grid gap-2">
+									<Label htmlFor="settings-sounds-enabled">Sounds</Label>
+									<Select id="settings-sounds-enabled" value={soundsEnabled ? 'enabled' : 'disabled'} onChange={event => setSoundsEnabled(event.target.value === 'enabled')} className="appearance-none pr-10">
+										<option value="disabled">Disabled</option>
+										<option value="enabled">Enabled</option>
+									</Select>
+								</div>
+							</div>
 									<div className="flex justify-end"><Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save general settings'}</Button></div>
 								</section>
 							)}

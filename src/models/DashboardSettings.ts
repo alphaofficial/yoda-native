@@ -8,6 +8,7 @@ export class DashboardSettings {
 	backupRetentionDays!: number;
 	timeFormat!: '12' | '24';
 	theme!: 'light' | 'dark' | 'system';
+	soundsEnabled!: boolean;
 	githubToken?: string | null;
 	repositoryScopes!: string;
 	pullRequestFilters!: string;

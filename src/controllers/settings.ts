@@ -12,6 +12,7 @@ function settingsResponse(settings: DashboardConfig) {
 		timeZone: settings.timeZone,
 		timeFormat: settings.timeFormat ?? '12',
 		theme: settings.theme ?? 'light',
+		soundsEnabled: settings.soundsEnabled ?? false,
 		shortcutLimit: settings.shortcutLimit ?? 8,
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,

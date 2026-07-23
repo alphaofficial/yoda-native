@@ -41,6 +41,7 @@ function toSettings(settings: DashboardSettings, shortcuts: DashboardShortcut[])
 		timeZone: settings.timeZone,
 		timeFormat: settings.timeFormat === '24' ? '24' : '12',
 		theme: settings.theme === 'dark' || settings.theme === 'system' ? settings.theme : 'light',
+		soundsEnabled: settings.soundsEnabled ?? false,
 		shortcutLimit: settings.shortcutLimit ?? 8,
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,
@@ -63,6 +64,7 @@ export function createDashboardRepository(db: EntityManager) {
 			timeZone: config.timeZone,
 			timeFormat: config.timeFormat ?? '12',
 			theme: config.theme ?? 'light',
+			soundsEnabled: false,
 			shortcutLimit: config.shortcutLimit ?? 8,
 			pullRequestWindowDays: config.github.windowDays ?? 7,
 			backupIntervalHours: 24,
@@ -108,12 +110,13 @@ export function createDashboardRepository(db: EntityManager) {
 		};
 	}
 
-	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; shortcutLimit?: number; pullRequestWindowDays?: number; backupIntervalHours?: number; backupRetentionDays?: number; githubToken?: string | null }): Promise<DashboardConfig> {
+	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; soundsEnabled?: boolean; shortcutLimit?: number; pullRequestWindowDays?: number; backupIntervalHours?: number; backupRetentionDays?: number; githubToken?: string | null }): Promise<DashboardConfig> {
 		const settings = await db.findOneOrFail(DashboardSettings, { id: 'default' });
 		settings.displayName = typeof input.displayName === 'string' ? input.displayName.trim() : settings.displayName;
 		settings.timeZone = typeof input.timeZone === 'string' ? input.timeZone : settings.timeZone;
 		settings.timeFormat = input.timeFormat === '12' || input.timeFormat === '24' ? input.timeFormat : settings.timeFormat;
 		settings.theme = input.theme === 'light' || input.theme === 'dark' || input.theme === 'system' ? input.theme : settings.theme;
+		settings.soundsEnabled = typeof input.soundsEnabled === 'boolean' ? input.soundsEnabled : settings.soundsEnabled ?? false;
 		settings.shortcutLimit = typeof input.shortcutLimit === 'number' && Number.isInteger(input.shortcutLimit)
 			? Math.max(1, Math.min(50, input.shortcutLimit))
 			: settings.shortcutLimit;

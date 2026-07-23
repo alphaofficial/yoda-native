@@ -10,6 +10,7 @@ export interface DashboardResponse {
 	timeZone: string;
 	timeFormat?: TimeFormat;
 	theme?: ThemePreference;
+	soundsEnabled?: boolean;
 	displayName: string;
 	shortcutLimit?: number;
 	githubTokenConfigured?: boolean;
@@ -100,6 +101,7 @@ export interface DashboardConfig {
 	timeZone: string;
 	timeFormat?: TimeFormat;
 	theme?: ThemePreference;
+	soundsEnabled?: boolean;
 	shortcutLimit?: number;
 	backupIntervalHours?: number;
 	backupRetentionDays?: number;

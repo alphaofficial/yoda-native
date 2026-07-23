@@ -166,6 +166,7 @@ function buildDashboard(settings: DashboardConfig, pullRequestData: CachedPullRe
 		timeZone: settings.timeZone,
 		timeFormat: settings.timeFormat ?? '12',
 		theme: settings.theme ?? 'light',
+		soundsEnabled: settings.soundsEnabled ?? false,
 		displayName: settings.displayName,
 		shortcutLimit: settings.shortcutLimit ?? 8,
 		githubTokenConfigured: !!settings.githubToken,

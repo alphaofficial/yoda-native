@@ -14,6 +14,7 @@ export const DashboardSettingsMapper = new EntitySchema<DashboardSettings>({
 		backupRetentionDays: { type: 'number', fieldName: 'backup_retention_days', default: 30 },
 		timeFormat: { type: 'string', fieldName: 'time_format', default: '12' },
 		theme: { type: 'string', default: 'light' },
+		soundsEnabled: { type: 'boolean', fieldName: 'sounds_enabled', default: false },
 		githubToken: { type: 'string', fieldName: 'github_token', nullable: true },
 		repositoryScopes: { type: 'string', fieldName: 'repositories', default: '[]' },
 		pullRequestFilters: { type: 'string', fieldName: 'pull_request_filters', default: '{}' },

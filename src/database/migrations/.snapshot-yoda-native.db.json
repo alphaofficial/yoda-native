@@ -302,6 +302,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "sounds_enabled": {
+          "name": "sounds_enabled",
+          "type": "INTEGER",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
         }
       },
       "name": "dashboard_settings",

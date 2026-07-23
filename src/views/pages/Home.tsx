@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import GreetingHeader from '@/views/components/dashboard/GreetingHeader';
 import PullRequestPanel from '@/views/components/dashboard/PullRequestPanel';
 import ShortcutPanel from '@/views/components/dashboard/ShortcutPanel';
+import { applySoundPreference } from '@/views/lib/sounds';
 import type { DashboardResponse } from '@/types/dashboard';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -29,6 +30,10 @@ interface PageProps extends InertiaPageProps {
 export default function Home() {
 	const { props } = usePage<PageProps>();
 	const { applicationName, dashboard, pullRequestFilterState } = props;
+
+	useEffect(() => {
+		applySoundPreference(dashboard.soundsEnabled ?? false);
+	}, [dashboard.soundsEnabled]);
 
 	useEffect(() => {
 		applyTheme(dashboard.theme);
