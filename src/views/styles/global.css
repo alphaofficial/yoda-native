@@ -44,15 +44,6 @@
     @apply border-border outline-ring/50;
   }
 
-  /* Hide scrollbars but keep scrolling functionality */
-  ::-webkit-scrollbar {
-    display: none;
-  }
-  * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
   body {
     font-family: var(--font-sans);
     background-color: var(--background);

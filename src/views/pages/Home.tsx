@@ -47,7 +47,7 @@ export default function Home() {
 	return (
 		<>
 			<Head title={`${applicationName} Dashboard`} />
-			<div className="min-h-screen bg-background text-foreground antialiased">
+			<div className="min-h-[calc(100vh-38px)] bg-background text-foreground antialiased">
 				<main className="dashboard-shell">
 					<GreetingHeader dashboard={dashboard} />
 

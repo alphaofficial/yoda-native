@@ -18,7 +18,7 @@ export default function ErrorPage({ status = 500, message, stack }: Props) {
 	return (
 		<>
 			<Head title={`${status} — ${title}`} />
-			<div className="flex min-h-screen items-center justify-center bg-background px-6 py-12 text-foreground">
+			<div className="flex min-h-[calc(100vh-38px)] items-center justify-center bg-background px-6 py-12 text-foreground">
 				<div className={isDev ? 'w-full max-w-3xl' : 'text-center max-w-md'}>
 					<p className="font-medium text-muted-foreground">{status}</p>
 					<h1 className="display-heading mt-2 text-foreground">

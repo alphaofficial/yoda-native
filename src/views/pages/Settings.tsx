@@ -765,7 +765,7 @@ export default function Settings() {
 	return (
 		<>
 			<Head title={`Settings · ${applicationName}`} />
-			<div className="min-h-screen bg-background text-foreground antialiased">
+			<div className="min-h-[calc(100vh-38px)] bg-background text-foreground antialiased">
 				<main className="settings-shell">
 					<header className="settings-header">
 					<Button variant="ghost" className="-ml-6" render={<Link href="/" prefetch="hover" />}>
