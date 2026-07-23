@@ -16,8 +16,8 @@ interface SharedData {
 	[key: string]: any;
 }
 
-const templatePath = resolveApplicationPath('public', 'template.html');
-const ssrBundlePath = resolveApplicationPath('dist', 'ssr.mjs');
+const getTemplatePath = () => resolveApplicationPath('public', 'template.html');
+const getSsrBundlePath = () => resolveApplicationPath('dist', 'ssr.mjs');
 
 const HTML_ESCAPES: Record<string, string> = {
 	'&': '&amp;',
@@ -50,6 +50,7 @@ function resolvedThemeClass(theme: string): string {
 }
 
 async function loadSsrModule(): Promise<SsrModule> {
+	const ssrBundlePath = getSsrBundlePath();
 	const mtime = fs.statSync(ssrBundlePath).mtimeMs;
 	const url = `${pathToFileURL(ssrBundlePath).href}?v=${mtime}`;
 	return importSsrModule(url);
@@ -133,7 +134,7 @@ export async function renderHtml(page: unknown, title?: string, head?: string): 
 	const ssr = variables.DISABLE_SSR ? null : await renderOnSsr(page);
 	const theme = pageTheme(page);
 
-	const template = fs.readFileSync(templatePath, 'utf-8');
+	const template = fs.readFileSync(getTemplatePath(), 'utf-8');
 	const app = ssr
 		? ssr.body
 		: `<div id="app" data-page="${escapeHtml(JSON.stringify(page))}"></div>`;
