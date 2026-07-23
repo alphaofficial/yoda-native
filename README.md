@@ -22,8 +22,10 @@ A batteries-included fullstack starter built on **Express**, **InertiaJS**, **Re
 
 ## Quick start for humans
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alphaofficial/desktop-tba/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alphaofficial/yoda-native/main/install.sh | bash
 ```
+
+Installs the latest released macOS build to `/Applications/Yoda.app`, removes macOS quarantine attributes, and prompts before replacing an existing app.
 
 ## Desktop quick start
 
