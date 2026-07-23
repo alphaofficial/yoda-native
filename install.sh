@@ -29,10 +29,15 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 printf 'Latest Yoda release: v%s\n' "$VERSION"
 printf 'Asset: %s\n' "$ASSET"
-if [[ -t 0 ]]; then
+if [[ "${YODA_INSTALL_YES:-}" == "1" ]]; then
+  CONFIRM="y"
+elif [[ -t 0 ]]; then
   read -r -p 'Install this version to /Applications? [y/N] ' CONFIRM
-else
+elif [[ -r /dev/tty ]]; then
   read -r -p 'Install this version to /Applications? [y/N] ' CONFIRM < /dev/tty
+else
+  printf 'Install cancelled because no interactive terminal is available. Set YODA_INSTALL_YES=1 to install non-interactively.\n' >&2
+  exit 1
 fi
 case "$CONFIRM" in
   y|Y|yes|YES) ;;
@@ -51,6 +56,9 @@ ditto "$TMP_DIR/$APP_NAME" "$APPLICATIONS_DIR/$APP_NAME"
 
 printf 'Removing macOS quarantine attributes...\n'
 xattr -cr "$APPLICATIONS_DIR/$APP_NAME" 2>/dev/null || true
+
+printf 'Applying local macOS app signature...\n'
+codesign --force --deep --sign - "$APPLICATIONS_DIR/$APP_NAME" >/dev/null 2>&1 || true
 
 printf 'Installed %s\n' "$APPLICATIONS_DIR/$APP_NAME"
 printf 'Done!\n'
