@@ -29,7 +29,11 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 printf 'Latest Yoda release: v%s\n' "$VERSION"
 printf 'Asset: %s\n' "$ASSET"
-read -r -p 'Install this version to /Applications? [y/N] ' CONFIRM
+if [[ -t 0 ]]; then
+  read -r -p 'Install this version to /Applications? [y/N] ' CONFIRM
+else
+  read -r -p 'Install this version to /Applications? [y/N] ' CONFIRM < /dev/tty
+fi
 case "$CONFIRM" in
   y|Y|yes|YES) ;;
   *) printf 'Install cancelled.\n'; exit 0 ;;
