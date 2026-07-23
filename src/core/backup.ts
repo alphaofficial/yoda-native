@@ -1,11 +1,12 @@
-import { mkdir, readdir, rm, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import type { EntityManager } from '@mikro-orm/core';
 import variables from '@/config/variables';
 import { createDashboardRepository } from '@/repositories/DashboardRepository';
 import type { AppContext } from '@/runtime/context';
 
 const BACKUP_FILE_PATTERN = /^yoda-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.db$/;
+const PENDING_RESTORE_FILE = '.pending-restore.json';
 
 export interface DatabaseBackup {
 	fileName: string;
@@ -16,10 +17,31 @@ export interface DatabaseBackup {
 export interface BackupStatus {
 	count: number;
 	lastBackupAt: string | null;
+	backups: Array<{ fileName: string; createdAt: string }>;
+}
+
+interface PendingDatabaseRestore {
+	fileName: string;
+	requestedAt: string;
 }
 
 function backupFileName(now: Date): string {
 	return `yoda-${now.toISOString().replace(/:/g, '-')}.db`;
+}
+
+function pendingRestorePath(backupPath = variables.BACKUP_PATH): string {
+	return join(resolve(backupPath), PENDING_RESTORE_FILE);
+}
+
+function assertBackupFileName(fileName: string): void {
+	if (!BACKUP_FILE_PATTERN.test(fileName)) throw new Error('Invalid backup file.');
+}
+
+async function findDatabaseBackup(fileName: string, backupPath = variables.BACKUP_PATH): Promise<DatabaseBackup> {
+	assertBackupFileName(fileName);
+	const backup = (await listDatabaseBackups(backupPath)).find(candidate => candidate.fileName === fileName);
+	if (!backup) throw new Error('Backup was not found.');
+	return backup;
 }
 
 export async function listDatabaseBackups(backupPath = variables.BACKUP_PATH): Promise<DatabaseBackup[]> {
@@ -71,11 +93,58 @@ export async function createDatabaseBackup(
 	return { fileName: backupFileName(now), path, createdAt: metadata.mtime };
 }
 
+export async function checkpointDatabase(db: EntityManager): Promise<void> {
+	await db.getConnection().execute('pragma wal_checkpoint(truncate)');
+}
+
+export async function queueDatabaseBackupRestore(
+	db: EntityManager,
+	fileName: string,
+	backupPath = variables.BACKUP_PATH,
+): Promise<DatabaseBackup> {
+	const backup = await findDatabaseBackup(fileName, backupPath);
+	await checkpointDatabase(db);
+	await writeFile(pendingRestorePath(backupPath), JSON.stringify({
+		fileName: backup.fileName,
+		requestedAt: new Date().toISOString(),
+	} satisfies PendingDatabaseRestore, null, 2));
+	return backup;
+}
+
+export async function applyPendingDatabaseBackupRestore(
+	dbPath = variables.DB_PATH,
+	backupPath = variables.BACKUP_PATH,
+): Promise<DatabaseBackup | null> {
+	const restorePath = pendingRestorePath(backupPath);
+	let pending: PendingDatabaseRestore;
+	try {
+		pending = JSON.parse(await readFile(restorePath, 'utf8')) as PendingDatabaseRestore;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+		throw error;
+	}
+
+	const backup = await findDatabaseBackup(pending.fileName, backupPath);
+	const databasePath = resolve(dbPath);
+	await mkdir(dirname(databasePath), { recursive: true });
+	await copyFile(backup.path, databasePath);
+	await Promise.all([
+		rm(`${databasePath}-wal`, { force: true }),
+		rm(`${databasePath}-shm`, { force: true }),
+	]);
+	await rm(restorePath, { force: true });
+	return backup;
+}
+
 export async function getBackupStatus(backupPath = variables.BACKUP_PATH): Promise<BackupStatus> {
 	const backups = await listDatabaseBackups(backupPath);
 	return {
 		count: backups.length,
 		lastBackupAt: backups[0]?.createdAt.toISOString() ?? null,
+		backups: backups.map(backup => ({
+			fileName: backup.fileName,
+			createdAt: backup.createdAt.toISOString(),
+		})),
 	};
 }
 

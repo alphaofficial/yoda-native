@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import { dashboard } from '@/core/dashboard';
-import { createDatabaseBackup, getBackupStatus } from '@/core/backup';
+import { createDatabaseBackup, getBackupStatus, queueDatabaseBackupRestore } from '@/core/backup';
 import { createShortcutSettingsExport, validateShortcutSettingsImport } from '@/config/dashboard';
 import { DashboardConfigError } from '@/types/dashboard';
 import type { DashboardConfig } from '@/types/dashboard';
@@ -79,6 +79,17 @@ export async function createBackup(req: Request, res: Response) {
 		return redirectToSettings(req, res, 'backups', { type: 'success', message: 'Backup created.' });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Could not create backup.';
+		return redirectToSettings(req, res, 'backups', { type: 'error', message });
+	}
+}
+
+export async function applyBackup(req: Request, res: Response) {
+	try {
+		const fileName = typeof req.body.fileName === 'string' ? req.body.fileName : '';
+		await queueDatabaseBackupRestore(req.ctx.db, fileName);
+		return redirectToSettings(req, res, 'backups', { type: 'success', message: 'Backup restore queued. Restart the app to apply it.' });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Could not apply backup.';
 		return redirectToSettings(req, res, 'backups', { type: 'error', message });
 	}
 }

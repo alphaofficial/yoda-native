@@ -367,7 +367,7 @@ function PullRequestRow({ item }: { item: PullRequestItem }) {
 			href={item.url}
 			target="_blank"
 			rel="noreferrer noopener"
-			className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-2xl px-4 py-3 no-underline transition-colors hover:bg-muted/60"
+			className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 no-underline transition-colors hover:bg-muted/40"
 		>
 			<span className="relative mt-1 flex size-6 shrink-0 items-center justify-center text-muted-foreground">
 				<PullRequestStateIcon state={item.state} />

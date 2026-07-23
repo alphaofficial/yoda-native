@@ -83,6 +83,8 @@ async function bootstrap(): Promise<void> {
 	])).join(':');
 	process.chdir(app.getAppPath());
 
+	const { applyPendingDatabaseBackupRestore } = await import('@/core/backup');
+	await applyPendingDatabaseBackupRestore();
 	const { startHttpServer } = await import('@/runtime/startHttpServer');
 
 	runningServer = await startHttpServer();

@@ -48,7 +48,7 @@ interface PageProps extends InertiaPageProps {
 	feedback: { type: 'success' | 'error'; message: string } | null;
 	repositoryCatalog: (GitHubRepositoryCatalog & { selectedScopes: string[] }) | null;
 	repositoryError: string;
-	backupStatus: { count: number; lastBackupAt: string | null };
+	backupStatus: { count: number; lastBackupAt: string | null; backups: Array<{ fileName: string; createdAt: string }> };
 	settings: SettingsData;
 }
 
@@ -390,6 +390,7 @@ export default function Settings() {
 	const [dragged, setDragged] = useState<{ groupId: string; shortcutId: string } | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [backingUp, setBackingUp] = useState(false);
+	const [applyingBackup, setApplyingBackup] = useState<string | null>(null);
 	const [message, setMessage] = useState(props.feedback?.message ?? '');
 	const shortcutImportRef = useRef<HTMLInputElement>(null);
 
@@ -585,6 +586,18 @@ export default function Settings() {
 		});
 	};
 
+	const applyBackup = (fileName: string) => {
+		if (!window.confirm('Apply this backup? Restart the app after this request to restore the selected database.')) return;
+		setApplyingBackup(fileName);
+		setMessage('');
+		router.post('/settings/backups/apply', { fileName }, {
+			preserveScroll: true,
+			onSuccess: applySettingsPage,
+			onError: () => setMessage('Could not apply backup.'),
+			onFinish: () => setApplyingBackup(null),
+		});
+	};
+
 	const persistOrder = async (groupId: string, nextShortcuts: ShortcutGroupConfig['shortcuts'], previousShortcuts: ShortcutGroupConfig['shortcuts']) => {
 		setGroups(current => current.map(group => group.id === groupId ? { ...group, shortcuts: nextShortcuts } : group));
 		setMessage('Saving quick link order…');
@@ -675,6 +688,7 @@ export default function Settings() {
 		owners.set(repository.owner, entries);
 		return owners;
 	}, new Map<string, GitHubRepository[]>());
+	const backupDateFormatter = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: settings.timeZone });
 	const availableTimeZones = TIME_ZONES.includes(timeZone) ? TIME_ZONES : [timeZone, ...TIME_ZONES];
 
 	return (
@@ -878,6 +892,29 @@ export default function Settings() {
 										</div>
 									</div>
 									<p className="-mt-3 text-sm text-muted-foreground">Expired backups are deleted automatically. The newest backup is always kept.</p>
+									<div className="grid gap-3 border-t pt-6">
+										<div>
+											<h3 className="font-semibold">Restore backup</h3>
+											<p className="mt-1 text-sm text-muted-foreground">Queue a backup restore. The selected database is applied before the next app startup.</p>
+										</div>
+										{props.backupStatus.backups.length === 0 ? (
+											<p className="text-sm text-muted-foreground">No backups are available to restore.</p>
+										) : (
+											<div className="grid gap-2">
+												{props.backupStatus.backups.map(backup => (
+													<div key={backup.fileName} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+														<div className="min-w-0">
+															<p className="truncate font-medium">{backup.fileName}</p>
+															<p className="text-sm text-muted-foreground">{backupDateFormatter.format(new Date(backup.createdAt))}</p>
+														</div>
+														<Button type="button" variant="outline" size="sm" onClick={() => applyBackup(backup.fileName)} disabled={saving || backingUp || applyingBackup !== null}>
+															{applyingBackup === backup.fileName ? 'Queuing…' : 'Restore'}
+														</Button>
+													</div>
+												))}
+											</div>
+										)}
+									</div>
 									<div className="settings-save-action flex justify-end border-t pt-6">
 										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save settings'}</Button>
 									</div>
