@@ -18,7 +18,10 @@ import { resolveApplicationPath } from '@/runtime/applicationRoot';
  * Build the Express application and its shared ORM instance.
  */
 export async function createApp() {
-	const orm = await MikroORM.init(ormConfig);
+	const orm = await MikroORM.init({
+		...ormConfig,
+		dbName: process.env.DB_PATH,
+	});
 	const sessionStore = new SessionStore(orm);
 	const app = express();
 	const ctx = createApplicationCtx(orm);
