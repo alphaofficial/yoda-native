@@ -4,6 +4,7 @@ import type { EntityManager } from '@mikro-orm/core';
 import variables from '@/config/variables';
 import { createDashboardRepository } from '@/repositories/DashboardRepository';
 import type { AppContext } from '@/runtime/context';
+import { resolveApplicationDataPath } from '@/runtime/applicationRoot';
 
 const BACKUP_FILE_PATTERN = /^yoda-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z\.db$/;
 const PENDING_RESTORE_FILE = '.pending-restore.json';
@@ -30,7 +31,7 @@ function backupFileName(now: Date): string {
 }
 
 function pendingRestorePath(backupPath = variables.BACKUP_PATH): string {
-	return join(resolve(backupPath), PENDING_RESTORE_FILE);
+	return join(resolveApplicationDataPath(backupPath), PENDING_RESTORE_FILE);
 }
 
 function assertBackupFileName(fileName: string): void {
@@ -45,7 +46,7 @@ async function findDatabaseBackup(fileName: string, backupPath = variables.BACKU
 }
 
 export async function listDatabaseBackups(backupPath = variables.BACKUP_PATH): Promise<DatabaseBackup[]> {
-	const directory = resolve(backupPath);
+	const directory = resolveApplicationDataPath(backupPath);
 	let entries;
 	try {
 		entries = await readdir(directory, { withFileTypes: true });
@@ -84,7 +85,7 @@ export async function createDatabaseBackup(
 	backupPath = variables.BACKUP_PATH,
 	cleanUpExpired = true,
 ): Promise<DatabaseBackup> {
-	const directory = resolve(backupPath);
+	const directory = resolveApplicationDataPath(backupPath);
 	await mkdir(directory, { recursive: true });
 	const path = join(directory, backupFileName(now));
 	await db.getConnection().execute('vacuum into ?', [path]);
