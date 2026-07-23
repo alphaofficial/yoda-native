@@ -1,17 +1,23 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const source = 'yoda-native.db';
 const target = 'build/yoda-native.db';
 
 mkdirSync(dirname(target), { recursive: true });
-rmSync(target, { force: true });
 rmSync(`${target}-wal`, { force: true });
 rmSync(`${target}-shm`, { force: true });
-copyFileSync(source, target);
+
+if (!existsSync(target)) {
+	closeSync(openSync(target, 'w'));
+}
 
 execFileSync('npx', ['mikro-orm', 'migration:up'], {
+	stdio: 'inherit',
+	env: { ...process.env, DB_PATH: target },
+});
+
+execFileSync('npx', ['tsx', 'scripts/setup-dashboard-db.ts'], {
 	stdio: 'inherit',
 	env: { ...process.env, DB_PATH: target },
 });
