@@ -71,6 +71,7 @@ async function bootstrap(): Promise<void> {
 
 	process.env.APPLICATION_ROOT = app.getAppPath();
 	process.env.APPLICATION_DATA_ROOT = app.getPath('userData');
+	process.env.DB_PATH = path.join(app.getAppPath(), 'build', 'yoda-native.db');
 	process.env.PATH = Array.from(new Set([
 		'/opt/homebrew/bin',
 		'/usr/local/bin',

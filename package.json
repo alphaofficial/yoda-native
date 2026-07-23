@@ -7,11 +7,12 @@
     "build": "npm run build:client && npm run build:ssr && npm run build:server",
     "build:client": "vite build",
     "build:desktop": "node scripts/build-desktop.mjs",
-    "build:server": "rimraf dist/events dist/jobs dist/scheduler && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
+    "build:desktop:database": "node scripts/build-desktop-database.mjs",
+    "build:server": "rimraf dist/events dist/jobs dist/scheduler dist/database && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
     "build:ssr": "vite build --config vite.ssr.config.mjs",
     "db:seed": "mikro-orm seeder:run",
     "desktop:dev": "npm run build && npm run build:desktop && unset ELECTRON_RUN_AS_NODE; electron .",
-    "desktop:package": "npm run build && npm run build:desktop && electron-builder --config scripts/electron-builder.config.cjs",
+    "desktop:package": "npm run build && npm run build:desktop && npm run build:desktop:database && electron-builder --config scripts/electron-builder.config.cjs",
     "desktop:signing:check": "node scripts/check-desktop-signing.mjs",
     "desktop:start": "unset ELECTRON_RUN_AS_NODE; electron .",
     "migrate": "npm run migration:create && npm run migration:run",
@@ -129,6 +130,7 @@
       "!dist/mac*/**/*",
       "public/**/*",
       "config/**/*",
+      "build/yoda-native.db",
       "package.json"
     ],
     "asarUnpack": [

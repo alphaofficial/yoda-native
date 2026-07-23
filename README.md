@@ -51,7 +51,11 @@ npm run start:dev
 npm run desktop:package
 ```
 
+The package step builds the web app, desktop entrypoints, and a packaged database copy. `scripts/build-desktop-database.mjs` copies the shipped `yoda-native.db` into `build/yoda-native.db`, runs migrations against that copy, then Electron Builder includes `build/yoda-native.db` in the app bundle. Migrations are not run by the application at startup.
+
 The macOS app is written to `dist/mac-arm64/<productName>.app` on Apple Silicon, where `<productName>` comes from the Electron Builder `build.productName` value in `package.json`. Electron Builder also creates distributable artifacts such as `.dmg` and `.zip` files under `dist/`.
+
+On first launch, the packaged app copies `build/yoda-native.db` from the app bundle into Electron's writable user-data directory as `yoda-native.db`, then uses that writable copy for runtime data. Existing user-data databases are left untouched.
 
 You can launch the packaged app from Finder, or smoke-test it from the terminal:
 
@@ -84,6 +88,7 @@ npm run desktop:package
 | `dist/desktop/main.js` | Electron main process entrypoint. |
 | `dist/desktop/preload.js` | Electron preload script. |
 | `dist/database/mappings/*.map.js` | Runtime MikroORM entity mappings discovered by the packaged app. |
+| `build/yoda-native.db` | Packaged copy of the shipped `yoda-native.db`, migrated before packaging and copied to user-data on first launch. |
 | `public/app.js`, `public/main.css` | Browser renderer assets loaded by the Electron window. |
 
 ### Desktop troubleshooting
@@ -92,6 +97,7 @@ npm run desktop:package
 - **Electron behaves like Node instead of opening a window.** Make sure `ELECTRON_RUN_AS_NODE` is unset when launching the packaged binary.
 - **Rebuild fails while deleting `dist/mac-arm64`.** Close the packaged app or kill the running app process before packaging again.
 - **The app launches but the UI does not load.** Run `npm run desktop:package`, then launch from the terminal and check for HTTP `200` responses for `/`, `/main.css`, `/app.js`, and `/react.js`.
+- **The app reports missing database tables.** Re-run `npm run desktop:package` so `build/yoda-native.db` is recreated from the shipped `yoda-native.db` and migrated before packaging. Do not fix this by running migrations inside app startup code.
 - **Unsigned local macOS builds.** Local unsigned packages can run on your own machine. Apple credentials are only required for signed and notarized distribution builds.
 
 ## Quick start for agents
