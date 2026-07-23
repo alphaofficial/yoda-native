@@ -4,6 +4,7 @@ import { GitMergeIcon, GitPullRequestClosedIcon, GitPullRequestDraftIcon, GitPul
 import { BookOpen, ChevronLeft, ChevronRight, GitPullRequest, Hash, ListFilter, RefreshCw, Type, X } from 'lucide-react';
 import { Button } from '@/views/components/ui/button';
 import { Card, CardContent } from '@/views/components/ui/card';
+import { playSound } from '@/views/lib/sounds';
 import type { DashboardResponse, PullRequestItem } from '@/types/dashboard';
 
 interface PullRequestPanelProps {
@@ -460,10 +461,15 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 		: searchTokenFilter ? filterSuggestions.length : propertySuggestions.length;
 
 	const refreshPullRequests = () => {
+		playSound('loading');
 		router.post('/pull-requests/refresh', {}, {
 			preserveScroll: true,
 			onStart: () => dispatch({ type: 'refreshStarted' }),
-			onSuccess: () => dispatch({ type: 'refreshFinished', resetPage: true }),
+			onSuccess: () => {
+				playSound('ready');
+				dispatch({ type: 'refreshFinished', resetPage: true });
+			},
+			onError: () => playSound('error'),
 			onFinish: () => dispatch({ type: 'refreshFinished' }),
 		});
 	};
@@ -546,6 +552,7 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 								role="tab"
 								aria-selected={scope === tab.scope}
 								onClick={() => {
+									playSound('whisper');
 									setScope(tab.scope);
 									dispatch({ type: 'pageChanged', page: 1 });
 								}}

@@ -222,7 +222,10 @@ function BookmarkImporter({
 				);
 				dispatch({ type: 'dialogChanged', open: false });
 			},
-			onError: () => dispatch({ type: 'failed', message: 'Could not import bookmarks.' }),
+			onError: () => {
+				playSound('error');
+				dispatch({ type: 'failed', message: 'Could not import bookmarks.' });
+			},
 			onFinish: () => dispatch({ type: 'importFinished' }),
 		});
 	};
@@ -433,7 +436,10 @@ export default function Settings() {
 				setRepositoryError(nextProps.repositoryError);
 				window.history.replaceState(window.history.state, '', '/settings?section=github');
 			},
-			onError: () => setRepositoryError('Could not load repositories from GitHub.'),
+			onError: () => {
+				playSound('error');
+				setRepositoryError('Could not load repositories from GitHub.');
+			},
 			onFinish: () => setLoadingRepositories(false),
 		});
 	};
@@ -450,6 +456,7 @@ export default function Settings() {
 
 	useEffect(() => {
 		applyTheme(theme);
+		void window.desktop?.theme.setSource(theme);
 		if (theme !== 'system') return;
 		const media = window.matchMedia('(prefers-color-scheme: dark)');
 		const updateTheme = () => applyTheme(theme);
@@ -458,6 +465,7 @@ export default function Settings() {
 	}, [theme]);
 
 	const selectSection = (section: SettingsSection) => {
+		playSound('whisper');
 		setActiveSection(section);
 		setMessage('');
 		const url = new URL(window.location.href);
@@ -474,7 +482,10 @@ export default function Settings() {
 				applySettingsPage(page);
 				playSound('success');
 			},
-			onError: () => setMessage('Could not save general settings.'),
+			onError: () => {
+				playSound('error');
+				setMessage('Could not save general settings.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -489,9 +500,13 @@ export default function Settings() {
 			preserveScroll: true,
 			onSuccess: page => {
 				applySettingsPage(page);
+				playSound('success');
 				router.prefetch('/', {}, { cacheFor: '30s' });
 			},
-			onError: () => setMessage('Could not save GitHub settings.'),
+			onError: () => {
+				playSound('error');
+				setMessage('Could not save GitHub settings.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -518,10 +533,14 @@ export default function Settings() {
 			preserveScroll: true,
 			onSuccess: page => {
 				applySettingsPage(page);
+				playSound('success');
 				setNewShortcutLabel('');
 				setNewShortcutUrl('');
 			},
-			onError: () => setMessage('Could not add quick link.'),
+			onError: () => {
+				playSound('error');
+				setMessage('Could not add quick link.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -543,9 +562,13 @@ export default function Settings() {
 			preserveScroll: true,
 			onSuccess: page => {
 				applySettingsPage(page);
+				playSound('success');
 				setEditingShortcutId(null);
 			},
-			onError: () => setMessage('Could not update quick link.'),
+			onError: () => {
+				playSound('error');
+				setMessage('Could not update quick link.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -557,9 +580,13 @@ export default function Settings() {
 			preserveScroll: true,
 			onSuccess: page => {
 				applySettingsPage(page);
+				playSound('success');
 				setConfirmDeleteId(null);
 			},
-			onError: () => setMessage('Could not remove quick link.'),
+			onError: () => {
+				playSound('error');
+				setMessage('Could not remove quick link.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -569,8 +596,14 @@ export default function Settings() {
 		setMessage('');
 		router.patch('/settings?section=shortcuts', { shortcutLimit }, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
-			onError: () => setMessage('Could not save quick link limit.'),
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
+			onError: () => {
+				playSound('error');
+				setMessage('Could not save quick link limit.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -580,8 +613,14 @@ export default function Settings() {
 		setMessage('');
 		router.patch('/settings?section=backups', { backupIntervalHours, backupRetentionDays }, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
-			onError: () => setMessage('Could not save backup settings.'),
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
+			onError: () => {
+				playSound('error');
+				setMessage('Could not save backup settings.');
+			},
 			onFinish: () => setSaving(false),
 		});
 	};
@@ -591,8 +630,14 @@ export default function Settings() {
 		setMessage('');
 		router.post('/settings/backups', {}, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
-			onError: () => setMessage('Could not create backup.'),
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
+			onError: () => {
+				playSound('error');
+				setMessage('Could not create backup.');
+			},
 			onFinish: () => setBackingUp(false),
 		});
 	};
@@ -603,8 +648,14 @@ export default function Settings() {
 		setMessage('');
 		router.post('/settings/backups/apply', { fileName }, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
-			onError: () => setMessage('Could not apply backup.'),
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
+			onError: () => {
+				playSound('error');
+				setMessage('Could not apply backup.');
+			},
 			onFinish: () => setApplyingBackup(null),
 		});
 	};
@@ -617,8 +668,12 @@ export default function Settings() {
 			shortcutIds: nextShortcuts.map(shortcut => shortcut.id),
 		}, {
 			preserveScroll: true,
-			onSuccess: applySettingsPage,
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
 			onError: () => {
+				playSound('error');
 				setGroups(current => current.map(group => group.id === groupId ? { ...group, shortcuts: previousShortcuts } : group));
 				setMessage('Could not save quick link order.');
 			},
@@ -674,10 +729,14 @@ export default function Settings() {
 				preserveScroll: true,
 				onSuccess: page => {
 					applySettingsPage(page);
+					playSound('success');
 					setEditingShortcutId(null);
 					setConfirmDeleteId(null);
 				},
-				onError: () => setMessage('Could not import quick links.'),
+				onError: () => {
+					playSound('error');
+					setMessage('Could not import quick links.');
+				},
 				onFinish: () => setSaving(false),
 			});
 		} catch (caught) {

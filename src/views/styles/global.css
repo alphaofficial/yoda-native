@@ -47,27 +47,51 @@
     font-family: var(--font-sans);
     background-color: var(--background);
     color: var(--foreground);
-    transition: background-color 420ms ease-in, color 420ms ease-in;
+    /* transition: background-color 420ms ease-in, color 420ms ease-in; */
+    padding-top: 38px;
+    -webkit-user-select: none;
+    user-select: none;
     @apply bg-background text-foreground;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 38px;
+    background: var(--background);
+    -webkit-app-region: drag;
+    -webkit-user-select: none;
+    user-select: none;
+    z-index: 2147483647;
   }
   html {
     font-family: var(--font-sans);
     background-color: var(--background);
     color: var(--foreground);
-    transition: background-color 420ms ease-in, color 420ms ease-in;
+    /* transition: background-color 420ms ease-in, color 420ms ease-in; */
     @apply font-sans;
   }
 
   *, ::before, ::after {
     transition-property: background-color, border-color, color, fill, stroke;
     transition-duration: 420ms;
-    transition-timing-function: ease-in;
+    /* transition-timing-function: ease-in; */
   }
 
   html.theme-changing *, html.theme-changing ::before, html.theme-changing ::after {
     transition-property: background-color, border-color, color, fill, stroke !important;
     transition-duration: 420ms !important;
-    transition-timing-function: ease-in !important;
+    /* transition-timing-function: ease-in !important; */
   }
 
   h1,

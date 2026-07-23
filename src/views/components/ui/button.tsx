@@ -51,7 +51,6 @@ function Button({
 			data-slot="button"
 			data-cuelume-press
 			data-cuelume-release
-			data-cuelume-hover="tick"
 			className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
