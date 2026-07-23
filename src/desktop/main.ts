@@ -177,7 +177,10 @@ async function bootstrap(): Promise<void> {
 	await showStartupWindow(startupTheme);
 
 	await applyPendingDatabaseBackupRestore();
-	const orm = await MikroORM.init(ormConfig);
+	const orm = await MikroORM.init({
+		...ormConfig,
+		dbName: process.env.DB_PATH,
+	});
 	try {
 		await orm.migrator.up();
 	} finally {
