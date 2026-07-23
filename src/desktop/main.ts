@@ -100,6 +100,12 @@ function registerDesktopIpc(): void {
 		if (theme !== 'light' && theme !== 'dark' && theme !== 'system') return;
 		applyNativeThemePreference(theme);
 	});
+
+	ipcMain.handle('desktop:app:restart', () => {
+		isQuitting = true;
+		app.relaunch();
+		app.quit();
+	});
 }
 
 async function showStartupWindow(theme: StartupTheme): Promise<void> {

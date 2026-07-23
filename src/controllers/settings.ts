@@ -88,7 +88,7 @@ export async function applyBackup(req: Request, res: Response) {
 	try {
 		const fileName = typeof req.body.fileName === 'string' ? req.body.fileName : '';
 		await queueDatabaseBackupRestore(req.ctx.db, fileName);
-		return redirectToSettings(req, res, 'backups', { type: 'success', message: 'Backup restore queued. Restart the app to apply it.' });
+		return redirectToSettings(req, res, 'backups', { type: 'success', message: 'Backup restore queued. Restarting app to apply changes.' });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Could not apply backup.';
 		return redirectToSettings(req, res, 'backups', { type: 'error', message });

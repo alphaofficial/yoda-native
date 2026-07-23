@@ -8,6 +8,11 @@ const desktopApi: DesktopApi = {
 			return ipcRenderer.invoke('desktop:system:get-platform');
 		},
 	},
+	app: {
+		restart() {
+			return ipcRenderer.invoke('desktop:app:restart');
+		},
+	},
 	theme: {
 		setSource(theme) {
 			return ipcRenderer.invoke('desktop:theme:set-source', theme);

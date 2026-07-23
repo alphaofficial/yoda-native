@@ -643,7 +643,7 @@ export default function Settings() {
 	};
 
 	const applyBackup = (fileName: string) => {
-		if (!window.confirm('Apply this backup? Restart the app after this request to restore the selected database.')) return;
+		if (!window.confirm('Apply this backup? The app will restart to restore the selected database.')) return;
 		setApplyingBackup(fileName);
 		setMessage('');
 		router.post('/settings/backups/apply', { fileName }, {
@@ -651,6 +651,7 @@ export default function Settings() {
 			onSuccess: page => {
 				applySettingsPage(page);
 				playSound('success');
+				window.desktop.app.restart();
 			},
 			onError: () => {
 				playSound('error');

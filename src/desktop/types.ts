@@ -5,6 +5,9 @@ export type DesktopApi = {
 	system: {
 		getPlatform(): Promise<NodeJS.Platform>;
 	};
+	app: {
+		restart(): Promise<void>;
+	};
 	theme: {
 		setSource(theme: DesktopThemeSource): Promise<void>;
 	};
