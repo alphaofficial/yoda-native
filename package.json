@@ -98,7 +98,7 @@
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "electron": "^43.2.0",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^25.1.8",
     "esbuild": "^0.28.1",
     "nodemon": "^3.1.10",
     "pino-pretty": "^13.1.1",
@@ -132,7 +132,8 @@
       "public/**/*",
       "config/**/*",
       "build/yoda-native.db",
-      "package.json"
+      "package.json",
+      "install.sh"
     ],
     "asarUnpack": [
       "node_modules/@mikro-orm/sqlite/**/*",
