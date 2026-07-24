@@ -11,6 +11,7 @@ import { applyPendingDatabaseBackupRestore } from '@/core/backup';
 import ormConfig from '@/database/orm.config';
 import type { RunningHttpServer } from '@/runtime/startHttpServer';
 import { startHttpServer } from '@/runtime/startHttpServer';
+import { setupAutoUpdater } from './update';
 
 let mainWindow: BrowserWindow | null = null;
 let runningServer: RunningHttpServer | null = null;
@@ -162,6 +163,7 @@ function resolveDatabasePath(): string {
 
 async function bootstrap(): Promise<void> {
 	await app.whenReady();
+	setupAutoUpdater();
 
 	process.env.APPLICATION_ROOT = app.getAppPath();
 	process.env.APPLICATION_DATA_ROOT = app.getPath('userData');

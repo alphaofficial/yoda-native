@@ -13,6 +13,20 @@ const desktopApi: DesktopApi = {
 			return ipcRenderer.invoke('desktop:app:restart');
 		},
 	},
+	update: {
+		check() {
+			return ipcRenderer.invoke('desktop:update:check');
+		},
+		download() {
+			return ipcRenderer.invoke('desktop:update:download');
+		},
+		install() {
+			return ipcRenderer.invoke('desktop:update:install');
+		},
+		getStatus() {
+			return ipcRenderer.invoke('desktop:update:status');
+		},
+	},
 	theme: {
 		setSource(theme) {
 			return ipcRenderer.invoke('desktop:theme:set-source', theme);

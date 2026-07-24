@@ -4,9 +4,23 @@ set -euo pipefail
 REPO="alphaofficial/yoda-native"
 APP_NAME="Yoda.app"
 APPLICATIONS_DIR="/Applications"
+LAUNCH=false
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --launch)
+      LAUNCH=true
+      shift
+      ;;
+    *)
+      printf 'Unknown option: %s\n' "$1" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ "$OS" != "darwin" ]]; then
   printf 'Yoda desktop installer only supports macOS. Detected: %s\n' "$OS" >&2
@@ -61,4 +75,10 @@ printf 'Applying local macOS app signature...\n'
 codesign --force --deep --sign - "$APPLICATIONS_DIR/$APP_NAME" >/dev/null 2>&1 || true
 
 printf 'Installed %s\n' "$APPLICATIONS_DIR/$APP_NAME"
+
+if [[ "$LAUNCH" == "true" ]]; then
+  printf 'Launching Yoda...\n'
+  open "$APPLICATIONS_DIR/$APP_NAME"
+fi
+
 printf 'Done!\n'
