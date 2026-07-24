@@ -849,7 +849,7 @@ export default function Settings() {
 									</Select>
 								</div>
 							</div>
-									<div className="flex justify-end"><Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save general settings'}</Button></div>
+									<div className="flex justify-end"><Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button></div>
 								</section>
 							)}
 
@@ -994,7 +994,7 @@ export default function Settings() {
 										)}
 									</div>
 									<div className="settings-save-action flex justify-end border-t pt-6">
-										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save settings'}</Button>
+										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save'}</Button>
 									</div>
 								</section>
 							)}
@@ -1013,7 +1013,7 @@ export default function Settings() {
 											<Label htmlFor="shortcut-display-limit">Dashboard display limit</Label>
 											<Input id="shortcut-display-limit" type="number" min={1} max={50} value={shortcutLimit} onChange={event => setShortcutLimit(Math.max(1, Math.min(50, Number(event.target.value) || 1)))} />
 										</div>
-										<Button type="button" variant="outline" className="shrink-0" onClick={saveShortcutLimit} disabled={saving}>Save limit</Button>
+										<Button type="button" variant="outline" className="shrink-0" onClick={saveShortcutLimit} disabled={saving}>Save</Button>
 									</div>
 									{groups.length === 0 && <p className="text-muted-foreground">No quick link groups configured.</p>}
 									{groups.map(group => (
