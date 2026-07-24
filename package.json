@@ -66,6 +66,7 @@
     "compression": "^1.8.1",
     "cuelume": "^0.1.2",
     "dotenv-defaults": "^5.0.2",
+    "electron-updater": "^6.3.9",
     "express": "^5.1.0",
     "express-rate-limit": "^8.3.2",
     "express-session": "^1.18.2",

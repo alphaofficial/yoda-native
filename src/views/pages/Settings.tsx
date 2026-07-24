@@ -398,7 +398,44 @@ export default function Settings() {
 	const [backingUp, setBackingUp] = useState(false);
 	const [applyingBackup, setApplyingBackup] = useState<string | null>(null);
 	const [message, setMessage] = useState(props.feedback?.message ?? '');
+	const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+	const [checkingUpdate, setCheckingUpdate] = useState(false);
 	const shortcutImportRef = useRef<HTMLInputElement>(null);
+
+	const checkForUpdates = async () => {
+		setCheckingUpdate(true);
+		setUpdateStatus('Checking for updates…');
+		try {
+			const info = await window.desktop.update.check();
+			switch (info.status) {
+				case 'available':
+					setUpdateStatus(`Update available: v${info.version}. Downloading…`);
+					const downloadResult = await window.desktop.update.download();
+					if (downloadResult.status === 'ready') {
+						setUpdateStatus(`Update v${info.version} ready. Restart to install.`);
+					} else if (downloadResult.status === 'error') {
+						setUpdateStatus(`Download failed: ${downloadResult.error}`);
+					}
+					break;
+				case 'not-available':
+					setUpdateStatus('You’re on the latest version.');
+					break;
+				case 'error':
+					setUpdateStatus(`Error: ${info.error}`);
+					break;
+				default:
+					setUpdateStatus('Checking…');
+			}
+		} catch (error) {
+			setUpdateStatus(`Error: ${(error as Error).message}`);
+		} finally {
+			setCheckingUpdate(false);
+		}
+	};
+
+	const installUpdate = () => {
+		window.desktop.update.install();
+	};
 
 	const applySettingsPage = (page: { props: unknown }) => {
 		const nextProps = page.props as PageProps;
@@ -849,7 +886,17 @@ export default function Settings() {
 									</Select>
 								</div>
 							</div>
-									<div className="flex justify-end"><Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save general settings'}</Button></div>
+								<div className="flex justify-between items-center pt-4 border-t">
+									<div className="text-sm text-muted-foreground">
+										{updateStatus && <p>{updateStatus}</p>}
+									</div>
+									<div className="flex gap-2">
+										<Button type="button" variant="outline" onClick={checkForUpdates} disabled={checkingUpdate}>
+											{checkingUpdate ? 'Checking…' : 'Check for Updates'}
+										</Button>
+										<Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+									</div>
+								</div>
 								</section>
 							)}
 
@@ -994,7 +1041,7 @@ export default function Settings() {
 										)}
 									</div>
 									<div className="settings-save-action flex justify-end border-t pt-6">
-										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save settings'}</Button>
+										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save'}</Button>
 									</div>
 								</section>
 							)}
@@ -1013,7 +1060,7 @@ export default function Settings() {
 											<Label htmlFor="shortcut-display-limit">Dashboard display limit</Label>
 											<Input id="shortcut-display-limit" type="number" min={1} max={50} value={shortcutLimit} onChange={event => setShortcutLimit(Math.max(1, Math.min(50, Number(event.target.value) || 1)))} />
 										</div>
-										<Button type="button" variant="outline" className="shrink-0" onClick={saveShortcutLimit} disabled={saving}>Save limit</Button>
+										<Button type="button" variant="outline" className="shrink-0" onClick={saveShortcutLimit} disabled={saving}>Save</Button>
 									</div>
 									{groups.length === 0 && <p className="text-muted-foreground">No quick link groups configured.</p>}
 									{groups.map(group => (
