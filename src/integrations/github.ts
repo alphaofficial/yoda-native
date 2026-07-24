@@ -223,23 +223,48 @@ async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: s
 	const viewerLogin = await getGhViewerLogin();
 	const scopes = repositoryScopes.filter(scope => scope.trim().length > 0);
 	const searchScopes = scopes.length > 0 ? scopes : [null];
-	const outputs = await Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope))));
+
+	const [outputsWithInvolves, outputsWithoutInvolves] = await Promise.all([
+		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true)))),
+		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, false)))),
+	]);
+
 	const pullRequestsById = new Map<string, GhPullRequest>();
-	for (const output of outputs) {
+	const involvedIds = new Set<string>();
+
+	for (const output of outputsWithInvolves) {
 		for (const pullRequest of JSON.parse(output || '[]') as GhPullRequest[]) {
-			pullRequestsById.set(pullRequest.id || `${pullRequest.repository?.nameWithOwner ?? ''}#${pullRequest.number}`, pullRequest);
+			const id = pullRequest.id || `${pullRequest.repository?.nameWithOwner ?? ''}#${pullRequest.number}`;
+			pullRequestsById.set(id, pullRequest);
+			involvedIds.add(id);
 		}
 	}
+
+	for (const output of outputsWithoutInvolves) {
+		for (const pullRequest of JSON.parse(output || '[]') as GhPullRequest[]) {
+			const id = pullRequest.id || `${pullRequest.repository?.nameWithOwner ?? ''}#${pullRequest.number}`;
+			if (!involvedIds.has(id)) {
+				pullRequestsById.set(id, pullRequest);
+			}
+		}
+	}
+
 	const pullRequests = await enrichGhPullRequests(Array.from(pullRequestsById.values()));
 	return {
-		items: pullRequests.map(pullRequest => normalizeGhPullRequest(pullRequest.repository?.nameWithOwner ?? '', pullRequest)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+		items: pullRequests.map(pullRequest => {
+			const id = pullRequest.id || `${pullRequest.repository?.nameWithOwner ?? ''}#${pullRequest.number}`;
+			return normalizeGhPullRequest(pullRequest.repository?.nameWithOwner ?? '', pullRequest, !involvedIds.has(id));
+		}).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
 		unconfigured: false,
 		viewerLogin,
 	};
 }
 
-function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, scope: string | null): string[] {
-	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository', '--involves', viewerLogin ?? '@me'];
+function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, scope: string | null, includeInvolves = true): string[] {
+	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository'];
+	if (includeInvolves) {
+		args.push('--involves', viewerLogin ?? '@me');
+	}
 	if (!scope) return args;
 	if (scope.endsWith('/*')) args.push('--owner', scope.slice(0, -2));
 	else args.push('--repo', scope);
@@ -396,7 +421,7 @@ function normalizePullRequest(pullRequest: RawPullRequest): PullRequestItem {
 	};
 }
 
-function normalizeGhPullRequest(repository: string, pullRequest: GhPullRequest): PullRequestItem {
+function normalizeGhPullRequest(repository: string, pullRequest: GhPullRequest, involved = true): PullRequestItem {
 	let state: PullRequestItem['state'];
 	const rawState = pullRequest.state.toLowerCase();
 	if (pullRequest.isDraft) state = 'draft';
@@ -413,7 +438,7 @@ function normalizeGhPullRequest(repository: string, pullRequest: GhPullRequest):
 		authorAvatarUrl: pullRequest.author?.login ? `https://github.com/${encodeURIComponent(pullRequest.author.login)}.png?size=40` : undefined,
 		branchName: pullRequest.headRefName ?? undefined,
 		checkStatus: pullRequest.checkStatus ?? 'unknown',
-		involved: true,
+		involved,
 		state,
 		createdAt: pullRequest.createdAt ?? pullRequest.updatedAt,
 		updatedAt: pullRequest.updatedAt,
