@@ -80,7 +80,7 @@ export function setupAutoUpdater(): void {
 		return new Promise<UpdateInfo>((resolve) => {
 			isQuitting = true;
 
-			const child = spawn(installScript, [], {
+			const child = spawn(installScript, ['--launch'], {
 				detached: true,
 				stdio: 'ignore',
 				env: { ...process.env, YODA_INSTALL_YES: '1' },
@@ -89,8 +89,9 @@ export function setupAutoUpdater(): void {
 			child.unref();
 
 			setTimeout(() => {
+				app.quit();
 				resolve({ status: 'ready' } as UpdateInfo);
-			}, 1000);
+			}, 500);
 		});
 	});
 
