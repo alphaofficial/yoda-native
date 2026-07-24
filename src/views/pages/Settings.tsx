@@ -402,29 +402,23 @@ export default function Settings() {
 	const [checkingUpdate, setCheckingUpdate] = useState(false);
 	const shortcutImportRef = useRef<HTMLInputElement>(null);
 
-	const checkForUpdates = async () => {
+const checkForUpdates = async () => {
 		setCheckingUpdate(true);
 		setUpdateStatus('Checking for updates…');
 		try {
 			const info = await window.desktop.update.check();
 			switch (info.status) {
 				case 'available':
-					setUpdateStatus(`Update available: v${info.version}. Downloading…`);
-					const downloadResult = await window.desktop.update.download();
-					if (downloadResult.status === 'ready') {
-						setUpdateStatus(`Update v${info.version} ready. Restart to install.`);
-					} else if (downloadResult.status === 'error') {
-						setUpdateStatus(`Download failed: ${downloadResult.error}`);
-					}
+					setUpdateStatus(`Update available: v${info.version}. Click Update to install.`);
 					break;
 				case 'not-available':
-					setUpdateStatus('You’re on the latest version.');
+					setUpdateStatus('You are on the latest version.');
 					break;
 				case 'error':
 					setUpdateStatus(`Error: ${info.error}`);
 					break;
 				default:
-					setUpdateStatus('Checking…');
+					setUpdateStatus('Checking...');
 			}
 		} catch (error) {
 			setUpdateStatus(`Error: ${(error as Error).message}`);
@@ -891,9 +885,15 @@ export default function Settings() {
 										{updateStatus && <p>{updateStatus}</p>}
 									</div>
 									<div className="flex gap-2">
-										<Button type="button" variant="outline" onClick={checkForUpdates} disabled={checkingUpdate}>
-											{checkingUpdate ? 'Checking…' : 'Check for Updates'}
-										</Button>
+										{updateStatus?.includes('available') ? (
+											<Button type="button" variant="outline" onClick={installUpdate} disabled={checkingUpdate}>
+												Install Update
+											</Button>
+										) : (
+											<Button type="button" variant="outline" onClick={checkForUpdates} disabled={checkingUpdate}>
+												{checkingUpdate ? 'Checking…' : 'Check for Updates'}
+											</Button>
+										)}
 										<Button type="button" onClick={saveGeneral} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
 									</div>
 								</div>
