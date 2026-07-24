@@ -126,7 +126,7 @@ function pullRequestPanelReducer(state: PullRequestPanelState, action: PullReque
 }
 
 type SearchFilter = 'repo' | 'status' | 'title' | 'id';
-type PullRequestScope = 'all' | 'reviewing' | 'authored' | 'other';
+type PullRequestScope = 'all' | 'reviewing' | 'authored';
 
 interface FilterSuggestion {
 	filter: SearchFilter;
@@ -289,11 +289,11 @@ function matchesAppliedFilters(item: PullRequestItem, filters: AppliedFilter[]):
 
 function matchesScope(item: PullRequestItem, scope: PullRequestScope, viewerLogin: string | null): boolean {
 	if (scope === 'all') return true;
-	if (!viewerLogin) return scope === 'reviewing' ? item.involved : false;
+	if (!viewerLogin) return false;
 	const authored = item.author.toLowerCase() === viewerLogin.toLowerCase();
 	if (scope === 'authored') return authored;
-	if (scope === 'reviewing') return item.involved && !authored;
-	return !authored && !item.involved;
+	if (scope === 'reviewing') return !authored;
+	return false;
 }
 
 function formatRelativeAge(isoString: string): string {

@@ -224,12 +224,26 @@ async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: s
 	const scopes = repositoryScopes.filter(scope => scope.trim().length > 0);
 	const searchScopes = scopes.length > 0 ? scopes : [null];
 
-	const involvesType = prScope === 'reviewing' ? 'review-requested' : prScope === 'authored' ? 'author' : 'involves';
+	let outputsWithInvolves: string[] = [];
+	let outputsWithoutInvolves: string[] = [];
 
-	const [outputsWithInvolves, outputsWithoutInvolves] = await Promise.all([
-		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true, involvesType)))),
-		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, false)))),
-	]);
+	if (prScope === 'reviewing') {
+		const [requestedOutputs, reviewedOutputs, withoutOutputs] = await Promise.all([
+			Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true, 'review-requested')))),
+			Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true, 'reviewed-by')))),
+			Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, false)))),
+		]);
+		outputsWithInvolves = [...requestedOutputs, ...reviewedOutputs];
+		outputsWithoutInvolves = withoutOutputs;
+	} else {
+		const involvesType = prScope === 'authored' ? 'author' : 'involves';
+		const [withInvolves, without] = await Promise.all([
+			Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true, involvesType)))),
+			Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, false)))),
+		]);
+		outputsWithInvolves = withInvolves;
+		outputsWithoutInvolves = without;
+	}
 
 	const pullRequestsById = new Map<string, GhPullRequest>();
 	const involvedIds = new Set<string>();
@@ -262,7 +276,7 @@ async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: s
 	};
 }
 
-function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, repoScope: string | null, includeInvolves = true, involvesType: 'involves' | 'review-requested' | 'author' = 'involves'): string[] {
+function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, repoScope: string | null, includeInvolves = true, involvesType: 'involves' | 'review-requested' | 'reviewed-by' | 'author' = 'involves'): string[] {
 	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository'];
 	if (includeInvolves) {
 		args.push(`--${involvesType}`, viewerLogin ?? '@me');
