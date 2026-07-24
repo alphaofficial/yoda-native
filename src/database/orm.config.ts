@@ -1,11 +1,12 @@
 import "dotenv-defaults/config";
+import path from "path";
 import type { Options } from "@mikro-orm/core";
 import { Migrator } from "@mikro-orm/migrations";
 import { SqliteDriver } from "@mikro-orm/sqlite";
 import { env } from "@/config/variables";
 
 const mikroOrmOptions: Options = {
-	entities: ["dist/database/mappings/*.map.js"],
+	entities: [path.join(__dirname, "../database/mappings/*.map.js")],
 	entitiesTs: ["src/database/mappings/*.map.ts"],
 	dbName: env("DB_PATH") as string,
 	driver: SqliteDriver,
@@ -30,7 +31,7 @@ const mikroOrmOptions: Options = {
 		}
 	},
 	migrations: {
-		path: "dist/database/migrations",
+		path: path.join(__dirname, "migrations"),
 		pathTs: "src/database/migrations",
 	},
 	resultCache: {
@@ -39,7 +40,7 @@ const mikroOrmOptions: Options = {
 	extensions: [Migrator],
 	allowGlobalContext: process.env.NODE_ENV === "test",
 	seeder: {
-		path: "dist/database/seeder",
+		path: path.join(__dirname, "seeder"),
 		pathTs: "src/database/seeder",
 		defaultSeeder: "DatabaseSeeder",
 		emit: "ts",
