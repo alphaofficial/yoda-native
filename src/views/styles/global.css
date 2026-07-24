@@ -59,6 +59,7 @@
     color: var(--foreground);
     /* transition: background-color 420ms ease-in, color 420ms ease-in; */
     padding-top: 38px;
+    min-height: calc(100vh - 38px);
     -webkit-user-select: none;
     user-select: none;
     @apply bg-background text-foreground;
@@ -89,6 +90,7 @@
     background-color: var(--background);
     color: var(--foreground);
     /* transition: background-color 420ms ease-in, color 420ms ease-in; */
+    min-height: calc(100vh - 38px);
     @apply font-sans;
   }
 
