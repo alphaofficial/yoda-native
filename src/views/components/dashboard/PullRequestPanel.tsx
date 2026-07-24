@@ -162,7 +162,6 @@ const PULL_REQUEST_SCOPE_TABS: Array<{ scope: PullRequestScope; label: string }>
 	{ scope: 'all', label: 'All' },
 	{ scope: 'reviewing', label: 'Reviewing' },
 	{ scope: 'authored', label: 'Authored' },
-	{ scope: 'other', label: 'Other' },
 ];
 const DEFAULT_FILTERS: AppliedFilter[] = [
 	{ id: 'status:open', filter: 'status', value: 'open', label: 'Open', operator: 'AND' },
