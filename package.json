@@ -132,7 +132,8 @@
       "public/**/*",
       "config/**/*",
       "build/yoda-native.db",
-      "package.json"
+      "package.json",
+      "install.sh"
     ],
     "asarUnpack": [
       "node_modules/@mikro-orm/sqlite/**/*",
