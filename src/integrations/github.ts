@@ -212,20 +212,22 @@ export function createGitHubClient(options: GitHubClientOptions) {
 	return { fetchPullRequests };
 }
 
-async function fetchPullRequestsWithGh(repositoryScopes: string[], windowDays: number, requestedAt: Date): Promise<GitHubPullRequestResult> {
+async function fetchPullRequestsWithGh(repositoryScopes: string[], windowDays: number, requestedAt: Date, scope: 'all' | 'reviewing' | 'authored' = 'all'): Promise<GitHubPullRequestResult> {
 	const boundedWindowDays = Math.max(1, Math.min(30, Math.trunc(windowDays)));
 	const cutoff = requestedAt.getTime() - boundedWindowDays * 24 * 60 * 60 * 1000;
 	const cutoffDate = new Date(cutoff).toISOString().slice(0, 10);
-	return getGhSearchPullRequests(repositoryScopes, cutoffDate);
+	return getGhSearchPullRequests(repositoryScopes, cutoffDate, scope);
 }
 
-async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: string): Promise<GitHubPullRequestResult> {
+async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: string, prScope: 'all' | 'reviewing' | 'authored' = 'all'): Promise<GitHubPullRequestResult> {
 	const viewerLogin = await getGhViewerLogin();
 	const scopes = repositoryScopes.filter(scope => scope.trim().length > 0);
 	const searchScopes = scopes.length > 0 ? scopes : [null];
 
+	const involvesType = prScope === 'reviewing' ? 'review-requested' : prScope === 'authored' ? 'author' : 'involves';
+
 	const [outputsWithInvolves, outputsWithoutInvolves] = await Promise.all([
-		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true)))),
+		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, true, involvesType)))),
 		Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, false)))),
 	]);
 
@@ -260,14 +262,14 @@ async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: s
 	};
 }
 
-function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, scope: string | null, includeInvolves = true): string[] {
+function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, repoScope: string | null, includeInvolves = true, involvesType: 'involves' | 'review-requested' | 'author' = 'involves'): string[] {
 	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository'];
 	if (includeInvolves) {
-		args.push('--involves', viewerLogin ?? '@me');
+		args.push(`--${involvesType}`, viewerLogin ?? '@me');
 	}
-	if (!scope) return args;
-	if (scope.endsWith('/*')) args.push('--owner', scope.slice(0, -2));
-	else args.push('--repo', scope);
+	if (!repoScope) return args;
+	if (repoScope.endsWith('/*')) args.push('--owner', repoScope.slice(0, -2));
+	else args.push('--repo', repoScope);
 	return args;
 }
 
