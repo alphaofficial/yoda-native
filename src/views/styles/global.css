@@ -39,6 +39,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
+  :root {
+    --app-chrome-height: 38px;
+  }
+
   * {
     border-color: var(--border);
     @apply border-border outline-ring/50;
@@ -57,8 +61,8 @@
     font-family: var(--font-sans);
     background-color: var(--background);
     color: var(--foreground);
-    /* transition: background-color 420ms ease-in, color 420ms ease-in; */
-    padding-top: 38px;
+    min-height: calc(100vh - var(--app-chrome-height));
+    padding-top: var(--app-chrome-height);
     -webkit-user-select: none;
     user-select: none;
     @apply bg-background text-foreground;
@@ -77,7 +81,7 @@
     top: 0;
     right: 0;
     left: 0;
-    height: 38px;
+    height: var(--app-chrome-height);
     background: var(--background);
     -webkit-app-region: drag;
     -webkit-user-select: none;
@@ -181,7 +185,7 @@
 
   .settings-sidebar {
     position: sticky;
-    top: var(--spacing-xl);
+    top: calc(var(--app-chrome-height) + var(--spacing-xl));
     padding: var(--spacing-xs);
     background: var(--muted);
   }
