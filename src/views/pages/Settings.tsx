@@ -920,8 +920,7 @@ export default function Settings() {
 									</div>
 									<div className="settings-save-action flex justify-end">
 										<Button type="button" className="relative" onClick={saveGithub} disabled={saving} aria-busy={saving}>
-											<span className={saving ? 'invisible' : undefined}>Save GitHub settings</span>
-											{saving && <span className="absolute inset-0 flex items-center justify-center">Saving…</span>}
+											<span>Save</span>
 										</Button>
 									</div>
 								</section>
