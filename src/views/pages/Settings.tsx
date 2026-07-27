@@ -42,6 +42,7 @@ interface SettingsData {
 	backupIntervalHours: number;
 	backupRetentionDays: number;
 	pullRequestWindowDays: number;
+	pullRequestMode: PullRequestMode;
 	repositoryScopes: string[];
 	shortcutGroups: ShortcutGroupConfig[];
 }
@@ -417,6 +418,7 @@ export default function Settings() {
 	const [backupIntervalHours, setBackupIntervalHours] = useState(settings.backupIntervalHours);
 	const [backupRetentionDays, setBackupRetentionDays] = useState(settings.backupRetentionDays);
 	const [pullRequestWindowDays, setPullRequestWindowDays] = useState(settings.pullRequestWindowDays ?? 7);
+	const [pullRequestMode, setPullRequestMode] = useState<PullRequestMode>(settings.pullRequestMode ?? 'involved');
 	const [repositoryCatalog, setRepositoryCatalog] = useState<GitHubRepositoryCatalog | null>(initialRepositoryCatalog);
 	const [selectedRepositories, setSelectedRepositories] = useState(initialRepositoryCatalog?.selectedScopes ?? settings.repositoryScopes);
 	const [repositorySearch, setRepositorySearch] = useState('');
@@ -453,6 +455,7 @@ export default function Settings() {
 		setBackupIntervalHours(next.backupIntervalHours);
 		setBackupRetentionDays(next.backupRetentionDays);
 		setPullRequestWindowDays(next.pullRequestWindowDays);
+		setPullRequestMode(next.pullRequestMode);
 		setGroups(next.shortcutGroups);
 		setNewShortcutGroupId(current => next.shortcutGroups.some(group => group.id === current) ? current : next.shortcutGroups[0]?.id ?? '');
 		setRepositoryCatalog(nextProps.repositoryCatalog);
@@ -536,6 +539,7 @@ export default function Settings() {
 		setMessage('');
 		router.patch('/settings?section=github', {
 			pullRequestWindowDays,
+			pullRequestMode,
 			...(repositoryCatalog ? { repositoryScopes: selectedRepositories } : {}),
 		}, {
 			preserveScroll: true,
@@ -943,17 +947,29 @@ export default function Settings() {
 										<p className="mt-1 text-sm text-muted-foreground">Choose repositories across every account authenticated in GitHub CLI.</p>
 									</div>
 								</div>
-									<div className="grid max-w-56 gap-2 max-sm:max-w-none">
-										<Label htmlFor="settings-pr-window">Pull request history</Label>
-										<div className="relative">
-											<Select id="settings-pr-window" value={pullRequestWindowDays} onChange={event => setPullRequestWindowDays(Number(event.target.value))} className="appearance-none pr-10">
-												<option value={1}>Last day</option>
-												<option value={3}>Last 3 days</option>
-												<option value={7}>Last 7 days</option>
-												<option value={14}>Last 14 days</option>
-												<option value={30}>Last 30 days</option>
-											</Select>
-											<ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+									<div className="settings-form-grid">
+										<div className="grid gap-2">
+											<Label htmlFor="settings-pr-window">Pull request history</Label>
+											<div className="relative">
+												<Select id="settings-pr-window" value={pullRequestWindowDays} onChange={event => setPullRequestWindowDays(Number(event.target.value))} className="appearance-none pr-10">
+													<option value={1}>Last day</option>
+													<option value={3}>Last 3 days</option>
+													<option value={7}>Last 7 days</option>
+													<option value={14}>Last 14 days</option>
+													<option value={30}>Last 30 days</option>
+												</Select>
+												<ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+											</div>
+										</div>
+										<div className="grid gap-2">
+											<Label htmlFor="settings-pr-mode">Pull request scope</Label>
+											<div className="relative">
+												<Select id="settings-pr-mode" value={pullRequestMode} onChange={event => setPullRequestMode(event.target.value as PullRequestMode)} className="appearance-none pr-10">
+													<option value="involved">Only PRs involving me</option>
+													<option value="selected">All PRs in selected repos</option>
+												</Select>
+												<ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+											</div>
 										</div>
 									</div>
 									<div className="grid gap-3">

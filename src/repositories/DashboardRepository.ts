@@ -5,7 +5,7 @@ import variables from '@/config/variables';
 import { DashboardSettings } from '@/models/DashboardSettings';
 import { DashboardShortcut } from '@/models/DashboardShortcut';
 import { ShortcutValidationError } from '@/types/dashboard';
-import type { AddShortcutInput, DashboardConfig, ShortcutConfig, ShortcutGroupConfig, ThemePreference, TimeFormat } from '@/types/dashboard';
+import type { AddShortcutInput, DashboardConfig, PullRequestMode, ShortcutConfig, ShortcutGroupConfig, ThemePreference, TimeFormat } from '@/types/dashboard';
 
 function slugId(value: string): string {
 	return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || randomUUID();
@@ -46,7 +46,7 @@ function toSettings(settings: DashboardSettings, shortcuts: DashboardShortcut[])
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,
 		githubToken: settings.githubToken ?? null,
-		github: { repositoryScopes: parseRepositoryScopes(settings), windowDays: settings.pullRequestWindowDays ?? 7 },
+		github: { repositoryScopes: parseRepositoryScopes(settings), windowDays: settings.pullRequestWindowDays ?? 7, pullRequestMode: settings.pullRequestMode === 'selected' ? 'selected' : 'involved' },
 		shortcutGroups: Array.from(groups.values()),
 	};
 }
@@ -71,6 +71,7 @@ export function createDashboardRepository(db: EntityManager) {
 			backupRetentionDays: 30,
 			githubToken: config.githubToken ?? null,
 			repositoryScopes: JSON.stringify(config.github.repositoryScopes),
+			pullRequestMode: config.github.pullRequestMode ?? 'involved',
 			pullRequestFilters: '{}',
 			createdAt: now,
 			updatedAt: now,
@@ -110,7 +111,7 @@ export function createDashboardRepository(db: EntityManager) {
 		};
 	}
 
-	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; soundsEnabled?: boolean; shortcutLimit?: number; pullRequestWindowDays?: number; backupIntervalHours?: number; backupRetentionDays?: number; githubToken?: string | null }): Promise<DashboardConfig> {
+	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; soundsEnabled?: boolean; shortcutLimit?: number; pullRequestWindowDays?: number; pullRequestMode?: PullRequestMode; backupIntervalHours?: number; backupRetentionDays?: number; githubToken?: string | null }): Promise<DashboardConfig> {
 		const settings = await db.findOneOrFail(DashboardSettings, { id: 'default' });
 		settings.displayName = typeof input.displayName === 'string' ? input.displayName.trim() : settings.displayName;
 		settings.timeZone = typeof input.timeZone === 'string' ? input.timeZone : settings.timeZone;
@@ -123,6 +124,7 @@ export function createDashboardRepository(db: EntityManager) {
 		settings.pullRequestWindowDays = typeof input.pullRequestWindowDays === 'number' && Number.isInteger(input.pullRequestWindowDays)
 			? Math.max(1, Math.min(30, input.pullRequestWindowDays))
 			: settings.pullRequestWindowDays;
+		settings.pullRequestMode = input.pullRequestMode === 'selected' || input.pullRequestMode === 'involved' ? input.pullRequestMode : settings.pullRequestMode ?? 'involved';
 		settings.backupIntervalHours = typeof input.backupIntervalHours === 'number'
 			&& [0, 1, 6, 12, 24, 168].includes(input.backupIntervalHours)
 			? input.backupIntervalHours

@@ -1,5 +1,6 @@
 export type IntegrationState = 'ok' | 'error' | 'unconfigured';
 export type PullRequestCheckStatus = 'success' | 'pending' | 'failure' | 'unknown';
+export type PullRequestMode = 'involved' | 'selected';
 export type TimeFormat = '12' | '24';
 export type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -109,6 +110,7 @@ export interface DashboardConfig {
 	github: {
 		repositoryScopes: string[];
 		windowDays: number;
+		pullRequestMode: PullRequestMode;
 	};
 	shortcutGroups: ShortcutGroupConfig[];
 }

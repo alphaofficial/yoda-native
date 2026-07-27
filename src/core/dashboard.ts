@@ -57,6 +57,7 @@ function configurationHash(settings: DashboardConfig): string {
 			version: 5,
 			repositoryScopes: settings.github.repositoryScopes,
 			windowDays: settings.github.windowDays,
+			pullRequestMode: settings.github.pullRequestMode,
 		}))
 		.digest('hex');
 }
@@ -102,6 +103,7 @@ async function fetchPullRequests(settings: DashboardConfig, currentDateTime: Dat
 		const result = await createGitHubClient({
 			repositoryScopes: settings.github.repositoryScopes,
 			windowDays: settings.github.windowDays ?? 7,
+			pullRequestMode: settings.github.pullRequestMode,
 			requestedAt: currentDateTime,
 		}).fetchPullRequests();
 		return {

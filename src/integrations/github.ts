@@ -1,13 +1,14 @@
 import { createHttpClient, IntegrationRequestError } from '@/integrations/http';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import type { GitHubPullRequestContext, GitHubRepository, GitHubRepositoryCatalog, PullRequestCheckStatus, PullRequestItem } from '@/types/dashboard';
+import type { GitHubPullRequestContext, GitHubRepository, GitHubRepositoryCatalog, PullRequestCheckStatus, PullRequestItem, PullRequestMode } from '@/types/dashboard';
 
 const execFileAsync = promisify(execFile);
 
 interface GitHubClientOptions {
 	repositoryScopes: string[];
 	windowDays: number;
+	pullRequestMode: PullRequestMode;
 	requestedAt: Date;
 }
 
@@ -202,28 +203,28 @@ export async function discoverGitHubPullRequestContext(token: string, repository
 }
 
 export function createGitHubClient(options: GitHubClientOptions) {
-	const { repositoryScopes, windowDays, requestedAt } = options;
+	const { repositoryScopes, windowDays, pullRequestMode, requestedAt } = options;
 	const client = createHttpClient(GITHUB_BASE_URL);
 
 	async function fetchPullRequests(): Promise<GitHubPullRequestResult> {
-		return fetchPullRequestsWithGh(repositoryScopes, windowDays, requestedAt);
+		return fetchPullRequestsWithGh(repositoryScopes, windowDays, pullRequestMode, requestedAt);
 	}
 
 	return { fetchPullRequests };
 }
 
-async function fetchPullRequestsWithGh(repositoryScopes: string[], windowDays: number, requestedAt: Date): Promise<GitHubPullRequestResult> {
+async function fetchPullRequestsWithGh(repositoryScopes: string[], windowDays: number, pullRequestMode: PullRequestMode, requestedAt: Date): Promise<GitHubPullRequestResult> {
 	const boundedWindowDays = Math.max(1, Math.min(30, Math.trunc(windowDays)));
 	const cutoff = requestedAt.getTime() - boundedWindowDays * 24 * 60 * 60 * 1000;
 	const cutoffDate = new Date(cutoff).toISOString().slice(0, 10);
-	return getGhSearchPullRequests(repositoryScopes, cutoffDate);
+	return getGhSearchPullRequests(repositoryScopes, cutoffDate, pullRequestMode);
 }
 
-async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: string): Promise<GitHubPullRequestResult> {
+async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: string, pullRequestMode: PullRequestMode): Promise<GitHubPullRequestResult> {
 	const viewerLogin = await getGhViewerLogin();
 	const scopes = repositoryScopes.filter(scope => scope.trim().length > 0);
 	const searchScopes = scopes.length > 0 ? scopes : [null];
-	const outputs = await Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope))));
+	const outputs = await Promise.all(searchScopes.map(scope => runGh(buildGhPullRequestSearchArgs(cutoffDate, viewerLogin, scope, pullRequestMode))));
 	const pullRequestsById = new Map<string, GhPullRequest>();
 	for (const output of outputs) {
 		for (const pullRequest of JSON.parse(output || '[]') as GhPullRequest[]) {
@@ -238,8 +239,9 @@ async function getGhSearchPullRequests(repositoryScopes: string[], cutoffDate: s
 	};
 }
 
-function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, scope: string | null): string[] {
-	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository', '--involves', viewerLogin ?? '@me'];
+function buildGhPullRequestSearchArgs(cutoffDate: string, viewerLogin: string | null, scope: string | null, pullRequestMode: PullRequestMode): string[] {
+	const args = ['search', 'prs', '--updated', `>=${cutoffDate}`, '--limit', '100', '--json', 'id,number,title,url,createdAt,updatedAt,state,author,labels,repository'];
+	if (pullRequestMode === 'involved') args.push('--involves', viewerLogin ?? '@me');
 	if (!scope) return args;
 	if (scope.endsWith('/*')) args.push('--owner', scope.slice(0, -2));
 	else args.push('--repo', scope);

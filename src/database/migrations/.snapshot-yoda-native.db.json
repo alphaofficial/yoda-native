@@ -318,6 +318,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "integer"
+        },
+        "pull_request_mode": {
+          "name": "pull_request_mode",
+          "type": "TEXT",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'involved'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
         }
       },
       "name": "dashboard_settings",
