@@ -27,7 +27,7 @@ import { Label } from '@/views/components/ui/label';
 import { Select } from '@/views/components/ui/select';
 import { applySoundPreference, playSound } from '@/views/lib/sounds';
 import type { DesktopUpdateCheckResult } from '@/desktop/types';
-import type { GitHubRepository, GitHubRepositoryCatalog, ShortcutGroupConfig, ShortcutItem, ThemePreference, TimeFormat } from '@/types/dashboard';
+import type { GitHubRepository, GitHubRepositoryCatalog, PullRequestMode, ShortcutGroupConfig, ShortcutItem, ThemePreference, TimeFormat } from '@/types/dashboard';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
 type SettingsSection = 'general' | 'github' | 'shortcuts' | 'backups' | 'updates';
