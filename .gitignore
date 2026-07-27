@@ -20,5 +20,6 @@ test-results/
 playwright-report/
 *.db
 *.db*
+build/release.json
 !src/database/migrations/*.db.json
 *.log*

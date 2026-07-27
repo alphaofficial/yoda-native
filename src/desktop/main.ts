@@ -21,6 +21,7 @@ const githubLatestReleaseUrl = 'https://api.github.com/repos/alphaofficial/yoda-
 
 type StartupTheme = 'light' | 'dark';
 type DesktopThemePreference = StartupTheme | 'system';
+type ReleaseMetadata = { version?: string; tag?: string; commit?: string; builtAt?: string };
 type GitHubRelease = { tag_name?: string; html_url?: string; body?: string };
 
 const singleInstanceLock = app.requestSingleInstanceLock();
@@ -105,6 +106,15 @@ function normalizeReleaseTag(tag: string | null | undefined): string | null {
 	return normalized.startsWith('v') ? normalized.slice(1) : normalized;
 }
 
+function readReleaseMetadata(): ReleaseMetadata | null {
+	const metadataPath = path.join(app.getAppPath(), 'build', 'release.json');
+	try {
+		return JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as ReleaseMetadata;
+	} catch {
+		return null;
+	}
+}
+
 async function fetchLatestRelease(): Promise<GitHubRelease> {
 	const response = await fetch(githubLatestReleaseUrl, { headers: { Accept: 'application/vnd.github+json' } });
 	if (!response.ok) throw new Error(`GitHub release lookup failed with HTTP ${response.status}`);
@@ -112,8 +122,11 @@ async function fetchLatestRelease(): Promise<GitHubRelease> {
 }
 
 async function checkForUpdates(): Promise<DesktopUpdateCheckResult> {
-	const currentVersion = normalizeReleaseTag(app.getVersion());
-	const currentTag = currentVersion ? `v${currentVersion}` : null;
+	const metadata = readReleaseMetadata();
+	const metadataVersion = normalizeReleaseTag(metadata?.tag ?? metadata?.version);
+	const appVersion = normalizeReleaseTag(app.getVersion());
+	const currentVersion = metadataVersion ?? appVersion;
+	const currentTag = metadata?.tag ?? (currentVersion ? `v${currentVersion}` : null);
 	const latestRelease = await fetchLatestRelease();
 	const latestTag = latestRelease.tag_name ?? null;
 	const latestVersion = normalizeReleaseTag(latestTag);
@@ -128,7 +141,7 @@ async function checkForUpdates(): Promise<DesktopUpdateCheckResult> {
 		releaseUrl: latestRelease.html_url ?? null,
 		releaseNotes: latestRelease.body ?? null,
 		message: !currentVersion
-			? 'This build does not include application version metadata.'
+			? 'This build does not include release metadata.'
 			: updateAvailable ? `Yoda ${latestTag ?? latestVersion} is available.` : 'Yoda is up to date.',
 	};
 }
