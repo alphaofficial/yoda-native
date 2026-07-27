@@ -10,6 +10,7 @@ import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron';
 import { applyPendingDatabaseBackupRestore } from '@/core/backup';
 import ormConfig from '@/database/orm.config';
 import type { DesktopUpdateCheckResult } from '@/desktop/types';
+import { createDashboardRepository } from '@/repositories/DashboardRepository';
 import type { RunningHttpServer } from '@/runtime/startHttpServer';
 import { startHttpServer } from '@/runtime/startHttpServer';
 
