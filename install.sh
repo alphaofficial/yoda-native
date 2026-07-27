@@ -4,6 +4,13 @@ set -euo pipefail
 REPO="alphaofficial/yoda-native"
 APP_NAME="Yoda.app"
 APPLICATIONS_DIR="/Applications"
+LAUNCH_AFTER_INSTALL=0
+
+for ARG in "$@"; do
+  case "$ARG" in
+    --launch) LAUNCH_AFTER_INSTALL=1 ;;
+  esac
+done
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
@@ -61,4 +68,8 @@ printf 'Applying local macOS app signature...\n'
 codesign --force --deep --sign - "$APPLICATIONS_DIR/$APP_NAME" >/dev/null 2>&1 || true
 
 printf 'Installed %s\n' "$APPLICATIONS_DIR/$APP_NAME"
+if [[ "$LAUNCH_AFTER_INSTALL" == "1" ]]; then
+  printf 'Launching Yoda...\n'
+  open -a "$APPLICATIONS_DIR/$APP_NAME"
+fi
 printf 'Done!\n'

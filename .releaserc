@@ -13,7 +13,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version && npm run desktop:package"
+        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version && YODA_RELEASE_TAG=v${nextRelease.version} npm run desktop:package"
       }
     ],
     [

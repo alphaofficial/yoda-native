@@ -132,6 +132,8 @@
       "public/**/*",
       "config/**/*",
       "build/yoda-native.db",
+      "build/release.json",
+      "install.sh",
       "package.json"
     ],
     "asarUnpack": [
