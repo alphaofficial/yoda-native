@@ -11,6 +11,7 @@ import {
 	GitPullRequest,
 	GripVertical,
 	Link2,
+	PackageOpen,
 	Pencil,
 	RefreshCw,
 	Search,
@@ -25,10 +26,11 @@ import { Input } from '@/views/components/ui/input';
 import { Label } from '@/views/components/ui/label';
 import { Select } from '@/views/components/ui/select';
 import { applySoundPreference, playSound } from '@/views/lib/sounds';
+import type { DesktopUpdateCheckResult } from '@/desktop/types';
 import type { GitHubRepository, GitHubRepositoryCatalog, ShortcutGroupConfig, ShortcutItem, ThemePreference, TimeFormat } from '@/types/dashboard';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-type SettingsSection = 'general' | 'github' | 'shortcuts' | 'backups';
+type SettingsSection = 'general' | 'github' | 'shortcuts' | 'backups' | 'updates';
 
 interface SettingsData {
 	displayName: string;
@@ -148,7 +150,42 @@ const sections = [
 	{ id: 'github' as const, label: 'GitHub', icon: GitPullRequest },
 	{ id: 'shortcuts' as const, label: 'Quick links', icon: Link2 },
 	{ id: 'backups' as const, label: 'Backups', icon: DatabaseBackup },
+	{ id: 'updates' as const, label: 'Updates', icon: PackageOpen },
 ];
+
+function ReleaseNotes({ notes }: { notes: string }) {
+	const renderInlineMarkdown = (value: string) => {
+		const parts: React.ReactNode[] = [];
+		let remaining = value.replace(/`/g, '');
+		let key = 0;
+		const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/;
+		while (remaining) {
+			const match = linkPattern.exec(remaining);
+			if (!match?.index && match?.index !== 0) {
+				parts.push(remaining);
+				break;
+			}
+			if (match.index > 0) parts.push(remaining.slice(0, match.index));
+			parts.push(<a key={key++} className="text-primary underline-offset-4 hover:underline" href={match[2]} target="_blank" rel="noreferrer">{match[1]}</a>);
+			remaining = remaining.slice(match.index + match[0].length);
+		}
+		return parts;
+	};
+
+	return (
+		<div className="grid max-h-80 gap-3 overflow-auto rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
+			{notes.split('\n').map((line, index) => {
+				const trimmed = line.trim();
+				if (!trimmed) return <div key={index} className="h-1" />;
+				if (trimmed.startsWith('### ')) return <h4 key={index} className="font-semibold text-foreground">{renderInlineMarkdown(trimmed.slice(4))}</h4>;
+				if (trimmed.startsWith('## ')) return <h3 key={index} className="text-base font-semibold text-foreground">{renderInlineMarkdown(trimmed.slice(3))}</h3>;
+				if (trimmed.startsWith('# ')) return <h3 key={index} className="text-base font-semibold text-foreground">{renderInlineMarkdown(trimmed.slice(2))}</h3>;
+				if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return <p key={index} className="pl-4 before:mr-2 before:content-['•']">{renderInlineMarkdown(trimmed.slice(2))}</p>;
+				return <p key={index}>{renderInlineMarkdown(trimmed)}</p>;
+			})}
+		</div>
+	);
+}
 
 function BookmarkImporter({
 	groups,
@@ -396,6 +433,10 @@ export default function Settings() {
 	const [dragged, setDragged] = useState<{ groupId: string; shortcutId: string } | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [backingUp, setBackingUp] = useState(false);
+	const [checkingUpdates, setCheckingUpdates] = useState(false);
+	const [installingUpdate, setInstallingUpdate] = useState(false);
+	const [updateCheck, setUpdateCheck] = useState<DesktopUpdateCheckResult | null>(null);
+	const [showReleaseNotes, setShowReleaseNotes] = useState(false);
 	const [applyingBackup, setApplyingBackup] = useState<string | null>(null);
 	const [message, setMessage] = useState(props.feedback?.message ?? '');
 	const shortcutImportRef = useRef<HTMLInputElement>(null);
@@ -642,6 +683,47 @@ export default function Settings() {
 		});
 	};
 
+	const checkForUpdates = async () => {
+		if (!window.desktop) {
+			setMessage('Updates are only available in the desktop app.');
+			return;
+		}
+		setCheckingUpdates(true);
+		setMessage('');
+		try {
+			const result = await window.desktop.updates.check();
+			setUpdateCheck(result);
+			setShowReleaseNotes(false);
+			setMessage(result.updateAvailable ? '' : result.message);
+			playSound(result.updateAvailable ? 'success' : 'whisper');
+		} catch (caught) {
+			playSound('error');
+			setMessage(caught instanceof Error ? caught.message : 'Could not check for updates.');
+		} finally {
+			setCheckingUpdates(false);
+		}
+	};
+
+	const installUpdate = async () => {
+		if (!window.desktop || !updateCheck?.updateAvailable) return;
+		if (!window.confirm(`Install ${updateCheck.latestTag ?? `Yoda ${updateCheck.latestVersion}`} now? The app will close while the update is installed.`)) return;
+		setInstallingUpdate(true);
+		setMessage('Installing update…');
+		try {
+			await window.desktop.updates.install();
+		} catch (caught) {
+			playSound('error');
+			setMessage(caught instanceof Error ? caught.message : 'Could not install update.');
+			setInstallingUpdate(false);
+		}
+	};
+
+	const skipUpdate = () => {
+		setUpdateCheck(null);
+		setShowReleaseNotes(false);
+		setMessage('');
+	};
+
 	const applyBackup = (fileName: string) => {
 		if (!window.confirm('Apply this backup? The app will restart to restore the selected database.')) return;
 		setApplyingBackup(fileName);
@@ -651,7 +733,7 @@ export default function Settings() {
 			onSuccess: page => {
 				applySettingsPage(page);
 				playSound('success');
-				window.desktop.app.restart();
+				void window.desktop?.app.restart();
 			},
 			onError: () => {
 				playSound('error');
@@ -995,6 +1077,53 @@ export default function Settings() {
 									<div className="settings-save-action flex justify-end border-t pt-6">
 										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save'}</Button>
 									</div>
+								</section>
+							)}
+
+							{activeSection === 'updates' && (
+								<section className="settings-panel rounded-lg" aria-labelledby="update-settings-heading">
+									<div>
+										<h2 id="update-settings-heading" className="display-heading settings-section-title">Updates</h2>
+										<p className="mt-1 text-sm text-muted-foreground">Check GitHub releases and install the latest Yoda desktop build.</p>
+									</div>
+									<div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-muted/30 p-4">
+										<div className="flex min-w-0 items-center gap-3">
+											<div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm">
+												<PackageOpen className="size-5" aria-hidden="true" />
+											</div>
+											<div className="min-w-0">
+												<p className="font-semibold">{updateCheck?.updateAvailable ? `${updateCheck.latestTag ?? updateCheck.latestVersion} available` : 'Yoda desktop'}</p>
+												<p className="text-sm text-muted-foreground">
+													{updateCheck?.currentTag || updateCheck?.currentVersion
+														? `Installed ${updateCheck.currentTag ?? updateCheck.currentVersion}`
+														: 'Check for the latest available release.'}
+												</p>
+											</div>
+										</div>
+										<div className="flex flex-wrap gap-2">
+											{updateCheck?.updateAvailable ? (
+												<>
+													<Button type="button" variant="outline" onClick={skipUpdate} disabled={installingUpdate}>Skip</Button>
+												<Button type="button" onClick={() => void installUpdate()} disabled={installingUpdate}>
+													{installingUpdate ? 'Installing…' : 'Install update'}
+												</Button>
+												</>
+											) : (
+												<Button type="button" variant="outline" onClick={() => void checkForUpdates()} disabled={checkingUpdates || installingUpdate || !window.desktop}>
+													{checkingUpdates ? 'Checking…' : 'Check for updates'}
+												</Button>
+											)}
+										</div>
+									</div>
+									{updateCheck && (
+										<div className="grid gap-2 rounded-lg border p-4 text-sm">
+											<div className="flex justify-between gap-3"><span className="text-muted-foreground">Installed</span><span>{updateCheck.currentTag ?? updateCheck.currentVersion ?? 'Unknown'}</span></div>
+											<div className="flex justify-between gap-3"><span className="text-muted-foreground">Latest</span><span>{updateCheck.latestTag ?? updateCheck.latestVersion ?? 'Unknown'}</span></div>
+											{updateCheck.releaseNotes && <button type="button" className="text-left text-primary underline-offset-4 hover:underline" onClick={() => setShowReleaseNotes(current => !current)}>{showReleaseNotes ? 'Hide release notes' : 'View release notes'}</button>}
+											{showReleaseNotes && updateCheck.releaseNotes && <ReleaseNotes notes={updateCheck.releaseNotes} />}
+										</div>
+									)}
+									{!window.desktop && <p className="text-sm text-muted-foreground">Updates can only be installed from the packaged desktop app.</p>}
 								</section>
 							)}
 

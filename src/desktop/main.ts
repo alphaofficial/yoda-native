@@ -1,6 +1,6 @@
 import 'dotenv-defaults/config';
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -9,15 +9,19 @@ import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron';
 
 import { applyPendingDatabaseBackupRestore } from '@/core/backup';
 import ormConfig from '@/database/orm.config';
+import type { DesktopUpdateCheckResult } from '@/desktop/types';
 import type { RunningHttpServer } from '@/runtime/startHttpServer';
 import { startHttpServer } from '@/runtime/startHttpServer';
 
 let mainWindow: BrowserWindow | null = null;
 let runningServer: RunningHttpServer | null = null;
 let isQuitting = false;
+const githubLatestReleaseUrl = 'https://api.github.com/repos/alphaofficial/yoda-native/releases/latest';
 
 type StartupTheme = 'light' | 'dark';
 type DesktopThemePreference = StartupTheme | 'system';
+type ReleaseMetadata = { version?: string; tag?: string; commit?: string; builtAt?: string };
+type GitHubRelease = { tag_name?: string; html_url?: string; body?: string };
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 
@@ -95,6 +99,64 @@ function applyNativeThemePreference(theme: DesktopThemePreference): void {
 	nativeTheme.themeSource = theme;
 }
 
+function normalizeReleaseTag(tag: string | null | undefined): string | null {
+	const normalized = tag?.trim();
+	if (!normalized) return null;
+	return normalized.startsWith('v') ? normalized.slice(1) : normalized;
+}
+
+function readReleaseMetadata(): ReleaseMetadata | null {
+	const metadataPath = path.join(app.getAppPath(), 'build', 'release.json');
+	try {
+		return JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as ReleaseMetadata;
+	} catch {
+		return null;
+	}
+}
+
+async function fetchLatestRelease(): Promise<GitHubRelease> {
+	const response = await fetch(githubLatestReleaseUrl, { headers: { Accept: 'application/vnd.github+json' } });
+	if (!response.ok) throw new Error(`GitHub release lookup failed with HTTP ${response.status}`);
+	return await response.json() as GitHubRelease;
+}
+
+async function checkForUpdates(): Promise<DesktopUpdateCheckResult> {
+	const metadata = readReleaseMetadata();
+	const currentTag = metadata?.tag ?? null;
+	const currentVersion = normalizeReleaseTag(currentTag ?? metadata?.version);
+	const latestRelease = await fetchLatestRelease();
+	const latestTag = latestRelease.tag_name ?? null;
+	const latestVersion = normalizeReleaseTag(latestTag);
+	const updateAvailable = Boolean(currentVersion && latestVersion && currentVersion !== latestVersion);
+
+	return {
+		currentVersion,
+		latestVersion,
+		currentTag,
+		latestTag,
+		updateAvailable,
+		releaseUrl: latestRelease.html_url ?? null,
+		releaseNotes: latestRelease.body ?? null,
+		message: !currentVersion
+			? 'This build does not include release metadata.'
+			: updateAvailable ? `Yoda ${latestTag ?? latestVersion} is available.` : 'Yoda is up to date.',
+	};
+}
+
+async function installUpdate(): Promise<void> {
+	if (process.platform !== 'darwin') throw new Error('Yoda updates are only supported on macOS.');
+	const installerPath = path.join(app.getAppPath(), 'install.sh');
+	if (!fs.existsSync(installerPath)) throw new Error('The bundled installer could not be found.');
+	const installer = spawn('/bin/bash', [installerPath, '--launch'], {
+		env: { ...process.env, YODA_INSTALL_YES: '1' },
+		detached: true,
+		stdio: 'ignore',
+	});
+	installer.unref();
+	isQuitting = true;
+	app.quit();
+}
+
 function registerDesktopIpc(): void {
 	ipcMain.handle('desktop:theme:set-source', (_event, theme: unknown) => {
 		if (theme !== 'light' && theme !== 'dark' && theme !== 'system') return;
@@ -106,6 +168,10 @@ function registerDesktopIpc(): void {
 		app.relaunch();
 		app.quit();
 	});
+
+	ipcMain.handle('desktop:updates:check', () => checkForUpdates());
+
+	ipcMain.handle('desktop:updates:install', () => installUpdate());
 }
 
 async function showStartupWindow(theme: StartupTheme): Promise<void> {
