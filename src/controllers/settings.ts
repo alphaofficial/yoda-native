@@ -17,6 +17,7 @@ function settingsResponse(settings: DashboardConfig) {
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,
 		pullRequestWindowDays: settings.github.windowDays ?? 7,
+		pullRequestMode: settings.github.pullRequestMode ?? 'involved',
 		repositoryScopes: settings.github.repositoryScopes,
 		shortcutGroups: settings.shortcutGroups,
 	};

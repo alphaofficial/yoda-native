@@ -17,6 +17,7 @@ export const DashboardSettingsMapper = new EntitySchema<DashboardSettings>({
 		soundsEnabled: { type: 'boolean', fieldName: 'sounds_enabled', default: false },
 		githubToken: { type: 'string', fieldName: 'github_token', nullable: true },
 		repositoryScopes: { type: 'string', fieldName: 'repositories', default: '[]' },
+		pullRequestMode: { type: 'string', fieldName: 'pull_request_mode', default: 'involved' },
 		pullRequestFilters: { type: 'string', fieldName: 'pull_request_filters', default: '{}' },
 		createdAt: { type: 'Date', fieldName: 'created_at', defaultRaw: 'CURRENT_TIMESTAMP' },
 		updatedAt: { type: 'Date', fieldName: 'updated_at', defaultRaw: 'CURRENT_TIMESTAMP', onUpdate: () => new Date() },

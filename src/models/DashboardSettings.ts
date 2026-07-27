@@ -11,6 +11,7 @@ export class DashboardSettings {
 	soundsEnabled!: boolean;
 	githubToken?: string | null;
 	repositoryScopes!: string;
+	pullRequestMode!: 'involved' | 'selected';
 	pullRequestFilters!: string;
 	createdAt: Date = new Date();
 	updatedAt: Date = new Date();

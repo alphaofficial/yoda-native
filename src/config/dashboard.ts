@@ -244,6 +244,7 @@ export function validateDashboardConfig(config: unknown): DashboardConfig {
 		github: {
 			repositoryScopes: repositoryScopes as string[],
 			windowDays: typeof gh.windowDays === 'number' && Number.isInteger(gh.windowDays) && gh.windowDays >= 1 && gh.windowDays <= 30 ? gh.windowDays : 7,
+			pullRequestMode: gh.pullRequestMode === 'selected' ? 'selected' : 'involved',
 		},
 		shortcutGroups: (shortcutGroups as Array<{ id: string; label: string; shortcuts: Array<{ id: string; label: string; url: string }> }>).map(group => ({
 			id: group.id,

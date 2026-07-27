@@ -215,6 +215,8 @@ async function stopApplication(): Promise<void> {
 
 function resolveDatabasePath(): string {
 	const databaseName = 'yoda-native.db';
+	if (!app.isPackaged) return path.resolve(databaseName);
+
 	const source = path.join(app.getAppPath(), 'build', databaseName);
 	const target = path.join(app.getPath('userData'), databaseName);
 
@@ -255,6 +257,7 @@ async function bootstrap(): Promise<void> {
 	});
 	try {
 		await orm.migrator.up();
+		await createDashboardRepository(orm.em.fork()).seedFromJsonIfEmpty();
 	} finally {
 		await orm.close(true);
 	}
