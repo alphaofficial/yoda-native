@@ -7,8 +7,6 @@ import { Session } from '@/models/Session';
 import { hash } from '@/utilities/hash';
 import { Mailer } from '@/primitives/mail';
 import { Bus } from '@/primitives/bus';
-import { Queue } from '@/primitives/queue';
-import { AppContext } from '@/runtime/context';
 
 export type AuthErrors = Record<string, string[]>;
 type AuthResult<T> = { data: T; errors: null } | { data: null; errors: AuthErrors };
@@ -338,10 +336,6 @@ export async function attemptRegister(database: EntityManager, body: unknown) {
 	}
 
 	await sendVerificationEmail(result.data.user, `<p>Welcome to ${variables.APP_NAME}!</p>`);
-	await Queue.dispatch('sendWelcomeEmail', {
-		to: result.data.user.email,
-		name: result.data.user.name,
-	});
 	return result;
 }
 
@@ -396,10 +390,3 @@ export async function resendVerification(user: Pick<User, 'id' | 'email' | 'emai
 	await sendVerificationEmail(user, '<p>Please verify your email address.</p>');
 	return { data: { status: 'A new verification link has been sent to your email address.' }, errors: null };
 }
-
-
-/** Event handler for AuthRegistered */
-export function onAuthRegistered<T>(ctx: AppContext, payload: T) {
-	// Handle auth registered event
-	ctx.logger.info({ scope: 'onAuthRegistered', message: 'User registered', payload });
-};
