@@ -1,5 +1,4 @@
 import { AppContext } from '@/runtime/context';
-import { registerEvents } from '@/events';
 import { getPrimitiveRuntime, hasPrimitiveRuntime, registerPrimitiveRuntime } from '@/runtime/primitiveRegistry';
 
 export type BusListener = (payload: unknown) => void;
@@ -36,7 +35,6 @@ const start = (): void => {
 		return;
 	}
 
-	registerEvents();
 	busRuntime.started = true;
 	void busRuntime.driver.start?.();
 };
