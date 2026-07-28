@@ -1,5 +1,4 @@
 import { AppContext } from '@/runtime/context';
-import { registerJobs } from '@/jobs';
 import { getPrimitiveRuntime, hasPrimitiveRuntime, registerPrimitiveRuntime } from '@/runtime/primitiveRegistry';
 
 export type QueueHandler<T = unknown> = (ctx: AppContext, payload: T) => Promise<void>;
@@ -41,7 +40,6 @@ const on = <T = unknown>(name: string, handler: QueueHandler<T>): void => {
 
 /** Load jobs and start the queue driver. */
 const start = (): void => {
-	registerJobs();
 	const runtime = getPrimitiveRuntime<QueueRuntime>('queue');
 	void runtime.driver.start(runtime.handlers);
 };
