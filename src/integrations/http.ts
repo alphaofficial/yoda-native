@@ -25,7 +25,7 @@ export interface HttpClient {
 	post<T>(path: string, options?: HttpPostOptions): Promise<T>;
 }
 
-export function createHttpClient(baseUrl: string): HttpClient {
+export function createHttpClient(baseUrl: string, options: { timeoutMs?: number; retryCount?: number } = {}): HttpClient {
 	const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
 	const provider = new URL(normalizedBaseUrl).hostname;
 	const sleep = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -36,8 +36,8 @@ export function createHttpClient(baseUrl: string): HttpClient {
 		{ headers = {}, body }: HttpPostOptions = {},
 	): Promise<T> {
 		const url = new URL(path.replace(/^\//, ''), normalizedBaseUrl).toString();
-		const timeoutMs = variables.DASHBOARD_REQUEST_TIMEOUT_MS;
-		const retryCount = variables.DASHBOARD_RETRY_COUNT;
+		const timeoutMs = options.timeoutMs ?? variables.DASHBOARD_REQUEST_TIMEOUT_MS;
+		const retryCount = options.retryCount ?? variables.DASHBOARD_RETRY_COUNT;
 
 		const attempt = async (attemptNumber: number): Promise<T> => {
 			const controller = new AbortController();

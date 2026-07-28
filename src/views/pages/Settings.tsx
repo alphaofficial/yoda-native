@@ -15,6 +15,7 @@ import {
 	Pencil,
 	RefreshCw,
 	Search,
+	SlidersHorizontal,
 	Settings2,
 	Trash2,
 	Upload,
@@ -30,7 +31,7 @@ import type { DesktopUpdateCheckResult } from '@/desktop/types';
 import type { GitHubRepository, GitHubRepositoryCatalog, PullRequestMode, ShortcutGroupConfig, ShortcutItem, ThemePreference, TimeFormat } from '@/types/dashboard';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-type SettingsSection = 'general' | 'github' | 'shortcuts' | 'backups' | 'updates';
+type SettingsSection = 'general' | 'github' | 'shortcuts' | 'backups' | 'config' | 'updates';
 
 interface SettingsData {
 	displayName: string;
@@ -41,6 +42,10 @@ interface SettingsData {
 	shortcutLimit: number;
 	backupIntervalHours: number;
 	backupRetentionDays: number;
+	dashboardCacheTtlSeconds: number;
+	githubRepositoryCacheTtlSeconds: number;
+	dashboardRequestTimeoutMs: number;
+	dashboardRetryCount: number;
 	pullRequestWindowDays: number;
 	pullRequestMode: PullRequestMode;
 	repositoryScopes: string[];
@@ -151,8 +156,11 @@ const sections = [
 	{ id: 'github' as const, label: 'GitHub', icon: GitPullRequest },
 	{ id: 'shortcuts' as const, label: 'Quick links', icon: Link2 },
 	{ id: 'backups' as const, label: 'Backups', icon: DatabaseBackup },
+	{ id: 'config' as const, label: 'Config', icon: SlidersHorizontal },
 	{ id: 'updates' as const, label: 'Updates', icon: PackageOpen },
 ];
+
+const secondsToMinutesInput = (value: number) => Number.isInteger(value / 60) ? String(value / 60) : String(Number((value / 60).toFixed(2)));
 
 function ReleaseNotes({ notes }: { notes: string }) {
 	const renderInlineMarkdown = (value: string) => {
@@ -417,6 +425,8 @@ export default function Settings() {
 	const [shortcutLimit, setShortcutLimit] = useState(settings.shortcutLimit);
 	const [backupIntervalHours, setBackupIntervalHours] = useState(settings.backupIntervalHours);
 	const [backupRetentionDays, setBackupRetentionDays] = useState(settings.backupRetentionDays);
+	const [dashboardCacheMinutes, setDashboardCacheMinutes] = useState(secondsToMinutesInput(settings.dashboardCacheTtlSeconds));
+	const [repositoryListCacheMinutes, setRepositoryListCacheMinutes] = useState(secondsToMinutesInput(settings.githubRepositoryCacheTtlSeconds));
 	const [pullRequestWindowDays, setPullRequestWindowDays] = useState(settings.pullRequestWindowDays ?? 7);
 	const [pullRequestMode, setPullRequestMode] = useState<PullRequestMode>(settings.pullRequestMode ?? 'involved');
 	const [repositoryCatalog, setRepositoryCatalog] = useState<GitHubRepositoryCatalog | null>(initialRepositoryCatalog);
@@ -454,6 +464,8 @@ export default function Settings() {
 		setShortcutLimit(next.shortcutLimit);
 		setBackupIntervalHours(next.backupIntervalHours);
 		setBackupRetentionDays(next.backupRetentionDays);
+		setDashboardCacheMinutes(secondsToMinutesInput(next.dashboardCacheTtlSeconds));
+		setRepositoryListCacheMinutes(secondsToMinutesInput(next.githubRepositoryCacheTtlSeconds));
 		setPullRequestWindowDays(next.pullRequestWindowDays);
 		setPullRequestMode(next.pullRequestMode);
 		setGroups(next.shortcutGroups);
@@ -665,6 +677,23 @@ export default function Settings() {
 			onError: () => {
 				playSound('error');
 				setMessage('Could not save backup settings.');
+			},
+			onFinish: () => setSaving(false),
+		});
+	};
+
+	const saveConfig = () => {
+		setSaving(true);
+		setMessage('');
+		router.patch('/settings?section=config', { dashboardCacheMinutes, repositoryListCacheMinutes }, {
+			preserveScroll: true,
+			onSuccess: page => {
+				applySettingsPage(page);
+				playSound('success');
+			},
+			onError: () => {
+				playSound('error');
+				setMessage('Could not save config settings.');
 			},
 			onFinish: () => setSaving(false),
 		});
@@ -1092,6 +1121,37 @@ export default function Settings() {
 									</div>
 									<div className="settings-save-action flex justify-end border-t pt-6">
 										<Button type="button" onClick={saveBackups} disabled={saving || backingUp}>{saving ? 'Saving…' : 'Save'}</Button>
+									</div>
+								</section>
+							)}
+
+							{activeSection === 'config' && (
+								<section className="settings-panel rounded-lg" aria-labelledby="config-settings-heading">
+									<div>
+										<h2 id="config-settings-heading" className="display-heading settings-section-title">Config</h2>
+									</div>
+									<div className="grid gap-6">
+										<div className="grid gap-3">
+											<h3 className="font-semibold">Dashboard config</h3>
+											<div className="settings-form-grid">
+												<div className="grid gap-2">
+													<Label htmlFor="settings-dashboard-cache-minutes">Refresh dashboard data after (minutes)</Label>
+													<Input id="settings-dashboard-cache-minutes" type="number" min={1} max={60} value={dashboardCacheMinutes} onChange={event => setDashboardCacheMinutes(event.target.value)} />
+												</div>
+											</div>
+										</div>
+										<div className="grid gap-3 border-t pt-6">
+											<h3 className="font-semibold">GitHub config</h3>
+											<div className="settings-form-grid">
+												<div className="grid gap-2">
+													<Label htmlFor="settings-repository-list-cache-minutes">Refresh repository list after (minutes)</Label>
+													<Input id="settings-repository-list-cache-minutes" type="number" min={1} max={1440} value={repositoryListCacheMinutes} onChange={event => setRepositoryListCacheMinutes(event.target.value)} />
+												</div>
+											</div>
+										</div>
+									</div>
+									<div className="settings-save-action flex justify-end">
+										<Button type="button" onClick={saveConfig} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
 									</div>
 								</section>
 							)}

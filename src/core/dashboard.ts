@@ -66,7 +66,8 @@ function tokenFingerprint(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
 }
 
-async function getGitHubRepositoryCatalog(token: string, refresh: boolean): Promise<GitHubRepositoryCatalog> {
+async function getGitHubRepositoryCatalog(settings: DashboardConfig, refresh: boolean): Promise<GitHubRepositoryCatalog> {
+	const token = settings.githubToken ?? '';
 	const fingerprint = tokenFingerprint(token);
 	const source = `token:${fingerprint}`;
 	if (!refresh) {
@@ -74,15 +75,18 @@ async function getGitHubRepositoryCatalog(token: string, refresh: boolean): Prom
 		if (cached?.source === source && Array.isArray(cached.catalog.teams)) return cached.catalog;
 	}
 
-	const catalog = await discoverGitHubRepositories(token);
+	const catalog = await discoverGitHubRepositories(token, {
+		requestTimeoutMs: settings.dashboardRequestTimeoutMs ?? variables.DASHBOARD_REQUEST_TIMEOUT_MS,
+		retryCount: settings.dashboardRetryCount ?? variables.DASHBOARD_RETRY_COUNT,
+	});
 	await Cache.set(REPOSITORY_CATALOG_CACHE_KEY, {
 		source,
 		catalog,
-	} satisfies CachedRepositoryCatalog, variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS);
+	} satisfies CachedRepositoryCatalog, settings.githubRepositoryCacheTtlSeconds ?? variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS);
 	return catalog;
 }
 
-async function getGitHubRepositoryCatalogWithGh(refresh: boolean): Promise<GitHubRepositoryCatalog> {
+async function getGitHubRepositoryCatalogWithGh(settings: DashboardConfig, refresh: boolean): Promise<GitHubRepositoryCatalog> {
 	const source = 'gh-cli';
 	if (!refresh) {
 		const cached = await Cache.get<CachedRepositoryCatalog>(REPOSITORY_CATALOG_CACHE_KEY);
@@ -93,7 +97,7 @@ async function getGitHubRepositoryCatalogWithGh(refresh: boolean): Promise<GitHu
 	await Cache.set(REPOSITORY_CATALOG_CACHE_KEY, {
 		source,
 		catalog,
-	} satisfies CachedRepositoryCatalog, variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS);
+	} satisfies CachedRepositoryCatalog, settings.githubRepositoryCacheTtlSeconds ?? variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS);
 	return catalog;
 }
 
@@ -105,6 +109,8 @@ async function fetchPullRequests(settings: DashboardConfig, currentDateTime: Dat
 			windowDays: settings.github.windowDays ?? 7,
 			pullRequestMode: settings.github.pullRequestMode,
 			requestedAt: currentDateTime,
+			requestTimeoutMs: settings.dashboardRequestTimeoutMs ?? variables.DASHBOARD_REQUEST_TIMEOUT_MS,
+			retryCount: settings.dashboardRetryCount ?? variables.DASHBOARD_RETRY_COUNT,
 		}).fetchPullRequests();
 		return {
 			configurationHash: hash,
@@ -134,7 +140,7 @@ async function getPullRequests(settings: DashboardConfig, currentDateTime: Date,
 	}
 
 	const fresh = await fetchPullRequests(settings, currentDateTime);
-	await Cache.set(PULL_REQUEST_CACHE_KEY, fresh, variables.DASHBOARD_CACHE_TTL_SECONDS);
+	await Cache.set(PULL_REQUEST_CACHE_KEY, fresh, settings.dashboardCacheTtlSeconds ?? variables.DASHBOARD_CACHE_TTL_SECONDS);
 	return fresh;
 }
 
@@ -203,7 +209,7 @@ async function settings(db: EntityManager): Promise<DashboardConfig> {
 
 async function githubRepositories(db: EntityManager, refresh: boolean): Promise<GitHubRepositoryCatalog | null> {
 	const config = await createDashboardRepository(db).getSettings();
-	return config.githubToken ? getGitHubRepositoryCatalog(config.githubToken, refresh) : getGitHubRepositoryCatalogWithGh(refresh);
+	return config.githubToken ? getGitHubRepositoryCatalog(config, refresh) : getGitHubRepositoryCatalogWithGh(config, refresh);
 }
 
 async function updateSettings(db: EntityManager, input: Parameters<ReturnType<typeof createDashboardRepository>['updateSettings']>[0] & { repositoryScopes?: string[] }): Promise<DashboardConfig> {

@@ -106,6 +106,10 @@ export interface DashboardConfig {
 	shortcutLimit?: number;
 	backupIntervalHours?: number;
 	backupRetentionDays?: number;
+	dashboardCacheTtlSeconds?: number;
+	githubRepositoryCacheTtlSeconds?: number;
+	dashboardRequestTimeoutMs?: number;
+	dashboardRetryCount?: number;
 	githubToken?: string | null;
 	github: {
 		repositoryScopes: string[];

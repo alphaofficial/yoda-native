@@ -6,6 +6,10 @@ export class DashboardSettings {
 	pullRequestWindowDays!: number;
 	backupIntervalHours!: number;
 	backupRetentionDays!: number;
+	dashboardCacheTtlSeconds!: number;
+	githubRepositoryCacheTtlSeconds!: number;
+	dashboardRequestTimeoutMs!: number;
+	dashboardRetryCount!: number;
 	timeFormat!: '12' | '24';
 	theme!: 'light' | 'dark' | 'system';
 	soundsEnabled!: boolean;
