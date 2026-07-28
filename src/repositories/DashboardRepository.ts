@@ -45,6 +45,10 @@ function toSettings(settings: DashboardSettings, shortcuts: DashboardShortcut[])
 		shortcutLimit: settings.shortcutLimit ?? 8,
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,
+		dashboardCacheTtlSeconds: settings.dashboardCacheTtlSeconds ?? variables.DASHBOARD_CACHE_TTL_SECONDS,
+		githubRepositoryCacheTtlSeconds: settings.githubRepositoryCacheTtlSeconds ?? variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS,
+		dashboardRequestTimeoutMs: settings.dashboardRequestTimeoutMs ?? variables.DASHBOARD_REQUEST_TIMEOUT_MS,
+		dashboardRetryCount: settings.dashboardRetryCount ?? variables.DASHBOARD_RETRY_COUNT,
 		githubToken: settings.githubToken ?? null,
 		github: { repositoryScopes: parseRepositoryScopes(settings), windowDays: settings.pullRequestWindowDays ?? 7, pullRequestMode: settings.pullRequestMode === 'selected' ? 'selected' : 'involved' },
 		shortcutGroups: Array.from(groups.values()),
@@ -69,6 +73,10 @@ export function createDashboardRepository(db: EntityManager) {
 			pullRequestWindowDays: config.github.windowDays ?? 7,
 			backupIntervalHours: 24,
 			backupRetentionDays: 30,
+			dashboardCacheTtlSeconds: variables.DASHBOARD_CACHE_TTL_SECONDS,
+			githubRepositoryCacheTtlSeconds: variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS,
+			dashboardRequestTimeoutMs: variables.DASHBOARD_REQUEST_TIMEOUT_MS,
+			dashboardRetryCount: variables.DASHBOARD_RETRY_COUNT,
 			githubToken: config.githubToken ?? null,
 			repositoryScopes: JSON.stringify(config.github.repositoryScopes),
 			pullRequestMode: config.github.pullRequestMode ?? 'involved',
@@ -111,7 +119,7 @@ export function createDashboardRepository(db: EntityManager) {
 		};
 	}
 
-	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; soundsEnabled?: boolean; shortcutLimit?: number; pullRequestWindowDays?: number; pullRequestMode?: PullRequestMode; backupIntervalHours?: number; backupRetentionDays?: number; githubToken?: string | null }): Promise<DashboardConfig> {
+	async function updateSettings(input: { displayName?: string; timeZone?: string; timeFormat?: TimeFormat; theme?: ThemePreference; soundsEnabled?: boolean; shortcutLimit?: number; pullRequestWindowDays?: number; pullRequestMode?: PullRequestMode; backupIntervalHours?: number; backupRetentionDays?: number; dashboardCacheTtlSeconds?: number; githubRepositoryCacheTtlSeconds?: number; dashboardRequestTimeoutMs?: number; dashboardRetryCount?: number; githubToken?: string | null }): Promise<DashboardConfig> {
 		const settings = await db.findOneOrFail(DashboardSettings, { id: 'default' });
 		settings.displayName = typeof input.displayName === 'string' ? input.displayName.trim() : settings.displayName;
 		settings.timeZone = typeof input.timeZone === 'string' ? input.timeZone : settings.timeZone;
@@ -132,6 +140,18 @@ export function createDashboardRepository(db: EntityManager) {
 		settings.backupRetentionDays = typeof input.backupRetentionDays === 'number' && Number.isInteger(input.backupRetentionDays)
 			? Math.max(1, Math.min(365, input.backupRetentionDays))
 			: settings.backupRetentionDays;
+		settings.dashboardCacheTtlSeconds = typeof input.dashboardCacheTtlSeconds === 'number' && Number.isInteger(input.dashboardCacheTtlSeconds)
+			? Math.max(5, Math.min(3600, input.dashboardCacheTtlSeconds))
+			: settings.dashboardCacheTtlSeconds ?? variables.DASHBOARD_CACHE_TTL_SECONDS;
+		settings.githubRepositoryCacheTtlSeconds = typeof input.githubRepositoryCacheTtlSeconds === 'number' && Number.isInteger(input.githubRepositoryCacheTtlSeconds)
+			? Math.max(60, Math.min(86400, input.githubRepositoryCacheTtlSeconds))
+			: settings.githubRepositoryCacheTtlSeconds ?? variables.GITHUB_REPOSITORY_CACHE_TTL_SECONDS;
+		settings.dashboardRequestTimeoutMs = typeof input.dashboardRequestTimeoutMs === 'number' && Number.isInteger(input.dashboardRequestTimeoutMs)
+			? Math.max(1000, Math.min(30000, input.dashboardRequestTimeoutMs))
+			: settings.dashboardRequestTimeoutMs ?? variables.DASHBOARD_REQUEST_TIMEOUT_MS;
+		settings.dashboardRetryCount = typeof input.dashboardRetryCount === 'number' && Number.isInteger(input.dashboardRetryCount)
+			? Math.max(0, Math.min(4, input.dashboardRetryCount))
+			: settings.dashboardRetryCount ?? variables.DASHBOARD_RETRY_COUNT;
 		settings.githubToken = input.githubToken !== undefined ? (input.githubToken ? input.githubToken.trim() : null) : settings.githubToken ?? null;
 		await db.flush();
 		return getSettings();

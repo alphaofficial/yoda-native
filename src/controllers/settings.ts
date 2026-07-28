@@ -16,6 +16,10 @@ function settingsResponse(settings: DashboardConfig) {
 		shortcutLimit: settings.shortcutLimit ?? 8,
 		backupIntervalHours: settings.backupIntervalHours ?? 24,
 		backupRetentionDays: settings.backupRetentionDays ?? 30,
+		dashboardCacheTtlSeconds: settings.dashboardCacheTtlSeconds ?? 900,
+		githubRepositoryCacheTtlSeconds: settings.githubRepositoryCacheTtlSeconds ?? 86400,
+		dashboardRequestTimeoutMs: settings.dashboardRequestTimeoutMs ?? 5000,
+		dashboardRetryCount: settings.dashboardRetryCount ?? 2,
 		pullRequestWindowDays: settings.github.windowDays ?? 7,
 		pullRequestMode: settings.github.pullRequestMode ?? 'involved',
 		repositoryScopes: settings.github.repositoryScopes,
@@ -23,10 +27,28 @@ function settingsResponse(settings: DashboardConfig) {
 	};
 }
 
+function normaliseConfigSettings(body: Record<string, unknown>) {
+	return {
+		...body,
+		dashboardCacheTtlSeconds: typeof body.dashboardCacheMinutes === 'string' || typeof body.dashboardCacheMinutes === 'number'
+			? Math.round(Number(body.dashboardCacheMinutes) * 60)
+			: body.dashboardCacheTtlSeconds,
+		githubRepositoryCacheTtlSeconds: typeof body.repositoryListCacheMinutes === 'string' || typeof body.repositoryListCacheMinutes === 'number'
+			? Math.round(Number(body.repositoryListCacheMinutes) * 60)
+			: body.githubRepositoryCacheTtlSeconds,
+		dashboardRequestTimeoutMs: typeof body.githubRequestTimeoutMinutes === 'string' || typeof body.githubRequestTimeoutMinutes === 'number'
+			? Math.round(Number(body.githubRequestTimeoutMinutes) * 60 * 1000)
+			: body.dashboardRequestTimeoutMs,
+		dashboardRetryCount: typeof body.githubRetryCount === 'string' || typeof body.githubRetryCount === 'number'
+			? Math.round(Number(body.githubRetryCount))
+			: body.dashboardRetryCount,
+	};
+}
+
 export async function settingsIndex(req: Request, res: Response) {
 	const settings = await dashboard.settings(req.ctx.db);
 	const requestedSection = typeof req.query.section === 'string' ? req.query.section : '';
-	const activeSection: SettingsSection = requestedSection === 'github' || requestedSection === 'shortcuts' || requestedSection === 'backups' ? requestedSection : 'general';
+	const activeSection: SettingsSection = requestedSection === 'github' || requestedSection === 'shortcuts' || requestedSection === 'backups' || requestedSection === 'config' ? requestedSection : 'general';
 	let catalog;
 	let repositoryError = '';
 	if (activeSection === 'github') {
@@ -52,13 +74,14 @@ export async function settingsIndex(req: Request, res: Response) {
 
 export async function updateSettings(req: Request, res: Response) {
 	const requestedSection = typeof req.query.section === 'string' ? req.query.section : '';
-	const section: SettingsSection = requestedSection === 'github' || requestedSection === 'shortcuts' || requestedSection === 'backups' ? requestedSection : 'general';
+	const section: SettingsSection = requestedSection === 'github' || requestedSection === 'shortcuts' || requestedSection === 'backups' || requestedSection === 'config' ? requestedSection : 'general';
 	try {
-		await dashboard.updateSettings(req.ctx.db, req.body);
+		await dashboard.updateSettings(req.ctx.db, section === 'config' ? normaliseConfigSettings(req.body) : req.body);
 		const message = section === 'github'
 			? 'GitHub settings saved.'
 			: section === 'shortcuts' ? 'Quick link limit saved.'
-				: section === 'backups' ? 'Backup settings saved.' : 'General settings saved.';
+				: section === 'backups' ? 'Backup settings saved.'
+					: section === 'config' ? 'Performance settings saved.' : 'General settings saved.';
 		return redirectToSettings(req, res, section, { type: 'success', message });
 	} catch (error) {
 		if (error instanceof DashboardConfigError) {

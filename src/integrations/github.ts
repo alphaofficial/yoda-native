@@ -10,6 +10,8 @@ interface GitHubClientOptions {
 	windowDays: number;
 	pullRequestMode: PullRequestMode;
 	requestedAt: Date;
+	requestTimeoutMs?: number;
+	retryCount?: number;
 }
 
 interface GitHubPullRequestResult {
@@ -102,8 +104,8 @@ const GITHUB_HEADERS = {
 };
 const GITHUB_BASE_URL = 'https://api.github.com';
 
-export async function discoverGitHubRepositories(token: string): Promise<GitHubRepositoryCatalog> {
-	const client = createHttpClient(GITHUB_BASE_URL);
+export async function discoverGitHubRepositories(token: string, options: { requestTimeoutMs?: number; retryCount?: number } = {}): Promise<GitHubRepositoryCatalog> {
+	const client = createHttpClient(GITHUB_BASE_URL, { timeoutMs: options.requestTimeoutMs, retryCount: options.retryCount });
 	const headers = { ...GITHUB_HEADERS, Authorization: `Bearer ${token}` };
 	const viewer = await client.get<{ login: string }>('/user', {
 		headers,
@@ -204,7 +206,6 @@ export async function discoverGitHubPullRequestContext(token: string, repository
 
 export function createGitHubClient(options: GitHubClientOptions) {
 	const { repositoryScopes, windowDays, pullRequestMode, requestedAt } = options;
-	const client = createHttpClient(GITHUB_BASE_URL);
 
 	async function fetchPullRequests(): Promise<GitHubPullRequestResult> {
 		return fetchPullRequestsWithGh(repositoryScopes, windowDays, pullRequestMode, requestedAt);
