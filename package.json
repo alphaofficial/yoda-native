@@ -65,6 +65,7 @@
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
     "cuelume": "^0.1.2",
+    "diff": "^8.0.4",
     "dotenv-defaults": "^5.0.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.3.2",

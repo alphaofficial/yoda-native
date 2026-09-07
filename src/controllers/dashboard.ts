@@ -1,9 +1,16 @@
 import { type Request, type Response } from 'express';
 import { dashboard } from '@/core/dashboard';
 import { redirectToSettings } from '@/controllers/settingsRedirect';
+import { convertPullRequestToDraft, getPullRequestDetail, invalidatePullRequestDetail, markPullRequestReadyForReview, replyToReviewThread, resolveReviewThread, unresolveReviewThread } from '@/integrations/githubPullRequest';
 import { ShortcutValidationError } from '@/types/dashboard';
 
 const PULL_REQUEST_FILTER_COOKIE = 'yoda_pull_request_filters';
+
+interface PullRequestRouteParams {
+	owner: string;
+	repo: string;
+	number: number;
+}
 
 function getCookie(req: Request, name: string): string | null {
 	const entry = req.headers.cookie?.split(';').map(cookie => cookie.trim()).find(cookie => cookie.startsWith(`${name}=`));
@@ -13,6 +20,23 @@ function getCookie(req: Request, name: string): string | null {
 	} catch {
 		return null;
 	}
+}
+
+function getPullRequestRouteParams(req: Request): PullRequestRouteParams | null {
+	const owner = typeof req.params.owner === 'string' ? req.params.owner : '';
+	const repo = typeof req.params.repo === 'string' ? req.params.repo : '';
+	const number = Number(req.params.number);
+	const hasValidPullRequest = Boolean(owner && repo && Number.isInteger(number) && number > 0);
+	if (!hasValidPullRequest) return null;
+	return { owner, repo, number };
+}
+
+function getThreadId(req: Request): string {
+	return typeof req.params.threadId === 'string' ? req.params.threadId : '';
+}
+
+function pullRequestRedirectPath({ owner, repo, number }: PullRequestRouteParams): string {
+	return `/pull-requests/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${number}`;
 }
 
 export async function dashboardIndex(req: Request, res: Response) {
@@ -27,6 +51,71 @@ export async function dashboardIndex(req: Request, res: Response) {
 export async function refreshPullRequests(req: Request, res: Response) {
 	await dashboard.refreshPullRequests(req.ctx.db, new Date());
 	return res.redirect(303, '/');
+}
+
+export async function pullRequestShow(req: Request, res: Response) {
+	const params = getPullRequestRouteParams(req);
+	if (!params) {
+		return res.status(404).render('Error', { status: 404, message: 'Pull request not found' });
+	}
+
+	const [settings, viewerLogin, pullRequest] = await Promise.all([
+		dashboard.settings(req.ctx.db),
+		dashboard.pullRequestViewerLogin(req.ctx.db, new Date()),
+		getPullRequestDetail(`${params.owner}/${params.repo}`, params.number),
+	]);
+
+	return res.render('PullRequest/Show', {
+		theme: settings.theme ?? 'light',
+		soundsEnabled: settings.soundsEnabled ?? false,
+		viewerLogin,
+		pullRequest,
+	});
+}
+
+export async function resolvePullRequestThread(req: Request, res: Response) {
+	const params = getPullRequestRouteParams(req);
+	const threadId = getThreadId(req);
+	if (!params || !threadId) return res.redirect(303, '/');
+	await resolveReviewThread(threadId);
+	await invalidatePullRequestDetail(`${params.owner}/${params.repo}`, params.number);
+	return res.redirect(303, pullRequestRedirectPath(params));
+}
+
+export async function unresolvePullRequestThread(req: Request, res: Response) {
+	const params = getPullRequestRouteParams(req);
+	const threadId = getThreadId(req);
+	if (!params || !threadId) return res.redirect(303, '/');
+	await unresolveReviewThread(threadId);
+	await invalidatePullRequestDetail(`${params.owner}/${params.repo}`, params.number);
+	return res.redirect(303, pullRequestRedirectPath(params));
+}
+
+export async function setPullRequestDraftStatus(req: Request, res: Response) {
+	const params = getPullRequestRouteParams(req);
+	if (!params) return res.status(404).render('Error', { status: 404, message: 'Pull request not found' });
+	const intent = typeof req.body.intent === 'string' ? req.body.intent : '';
+	const repository = `${params.owner}/${params.repo}`;
+	if (intent === 'ready') {
+		await markPullRequestReadyForReview(repository, params.number);
+	} else if (intent === 'draft') {
+		await convertPullRequestToDraft(repository, params.number);
+	} else {
+		return res.status(400).render('Error', { status: 400, message: 'Unknown draft status intent' });
+	}
+	await invalidatePullRequestDetail(repository, params.number);
+	return res.redirect(303, pullRequestRedirectPath(params));
+}
+
+export async function replyPullRequestThread(req: Request, res: Response) {
+	const params = getPullRequestRouteParams(req);
+	const threadId = getThreadId(req);
+	const body = typeof req.body.body === 'string' ? req.body.body.trim() : '';
+	if (!params) return res.redirect(303, '/');
+	if (!threadId || !body) return res.redirect(303, pullRequestRedirectPath(params));
+	await replyToReviewThread(threadId, body.slice(0, 10000));
+	await invalidatePullRequestDetail(`${params.owner}/${params.repo}`, params.number);
+	return res.redirect(303, pullRequestRedirectPath(params));
 }
 
 export async function createShortcut(req: Request, res: Response) {
