@@ -207,6 +207,12 @@ async function settings(db: EntityManager): Promise<DashboardConfig> {
 	return createDashboardRepository(db).getSettings();
 }
 
+async function pullRequestViewerLogin(entityManager: EntityManager, currentDateTime: Date): Promise<string | null> {
+	const config = await createDashboardRepository(entityManager).getSettings();
+	const pullRequests = await getPullRequests(config, currentDateTime, false);
+	return pullRequests?.viewerLogin ?? null;
+}
+
 async function githubRepositories(db: EntityManager, refresh: boolean): Promise<GitHubRepositoryCatalog | null> {
 	const config = await createDashboardRepository(db).getSettings();
 	return config.githubToken ? getGitHubRepositoryCatalog(config, refresh) : getGitHubRepositoryCatalogWithGh(config, refresh);
@@ -248,6 +254,7 @@ export const dashboard = Object.freeze({
 	get,
 	refreshPullRequests,
 	settings,
+	pullRequestViewerLogin,
 	githubRepositories,
 	updateSettings,
 	addShortcut,

@@ -50,6 +50,109 @@ export interface PullRequestItem {
 	labels: string[];
 }
 
+export interface PullRequestReviewParticipant {
+	login: string;
+	avatarUrl?: string;
+	state?: string;
+}
+
+export interface PullRequestCommentItem {
+	id: string;
+	author: string;
+	authorAvatarUrl?: string;
+	body: string;
+	createdAt: string;
+	url?: string;
+	timelineIndex?: number;
+	reviewState?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'DISMISSED' | string;
+}
+
+export interface PullRequestCheckItem {
+	name: string;
+	workflowName?: string;
+	status: string;
+	conclusion: string | null;
+	detailsUrl?: string;
+}
+
+export interface PullRequestCommitItem {
+	oid: string;
+	messageHeadline: string;
+	author: string;
+	authorAvatarUrl?: string;
+	url?: string;
+	committedDate: string;
+	timelineIndex?: number;
+}
+
+export interface PullRequestThreadComment {
+	id: string;
+	author: string;
+	authorAvatarUrl?: string;
+	body: string;
+	createdAt: string;
+	url?: string;
+}
+
+export interface PullRequestReviewThread {
+	id: string;
+	isResolved: boolean;
+	path: string | null;
+	line: number | null;
+	comments: PullRequestThreadComment[];
+	timelineIndex?: number;
+}
+
+export interface PullRequestDiffLine {
+	type: 'context' | 'add' | 'delete' | 'meta';
+	oldLineNumber: number | null;
+	newLineNumber: number | null;
+	content: string;
+}
+
+export interface PullRequestDiffHunk {
+	header: string;
+	lines: PullRequestDiffLine[];
+}
+
+export interface PullRequestDiffFile {
+	path: string;
+	oldPath?: string;
+	url?: string;
+	additions: number;
+	deletions: number;
+	hunks: PullRequestDiffHunk[];
+}
+
+export interface PullRequestDetail {
+	id: string;
+	repository: string;
+	number: number;
+	title: string;
+	author: string;
+	authorAvatarUrl?: string;
+	state: PullRequestItem['state'];
+	url: string;
+	createdAt: string;
+	updatedAt: string;
+	body: string;
+	headRefName: string;
+	baseRefName: string;
+	additions: number;
+	deletions: number;
+	commentCount: number;
+	checkStatus: PullRequestCheckStatus;
+	checks: PullRequestCheckItem[];
+	reviewDecision: string | null;
+	mergeable: string | null;
+	mergeStateStatus: string | null;
+	reviewers: PullRequestReviewParticipant[];
+	comments: PullRequestCommentItem[];
+	threads: PullRequestReviewThread[];
+	commits: PullRequestCommitItem[];
+	files: PullRequestDiffFile[];
+}
+
 export interface GitHubRepository {
 	id: number;
 	name: string;

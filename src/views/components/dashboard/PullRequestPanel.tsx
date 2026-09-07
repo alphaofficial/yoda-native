@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { GitMergeIcon, GitPullRequestClosedIcon, GitPullRequestDraftIcon, GitPullRequestIcon } from '@primer/octicons-react';
-import { BookOpen, ChevronLeft, ChevronRight, GitPullRequest, Hash, ListFilter, RefreshCw, Type, X } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, GitPullRequest, Hash, ListFilter, RefreshCw, Type, User, X } from 'lucide-react';
 import { Button } from '@/views/components/ui/button';
 import { Card, CardContent } from '@/views/components/ui/card';
 import { playSound } from '@/views/lib/sounds';
@@ -125,7 +125,7 @@ function pullRequestPanelReducer(state: PullRequestPanelState, action: PullReque
 	}
 }
 
-type SearchFilter = 'repo' | 'status' | 'title' | 'id';
+type SearchFilter = 'repo' | 'status' | 'title' | 'id' | 'author';
 type PullRequestScope = 'all' | 'reviewing' | 'authored';
 
 interface FilterSuggestion {
@@ -146,6 +146,7 @@ const FILTER_OPTIONS: Array<{
 }> = [
 	{ filter: 'status', label: 'Status', icon: GitPullRequest },
 	{ filter: 'repo', label: 'Repository', icon: BookOpen },
+	{ filter: 'author', label: 'Author', icon: User },
 	{ filter: 'title', label: 'Title', icon: Type },
 	{ filter: 'id', label: 'ID', icon: Hash },
 ];
@@ -184,7 +185,7 @@ function initialPullRequestPanelState(persistedFilterState: string | null): Pull
 				for (const value of parsed.filters) {
 					if (!value || typeof value !== 'object') throw new Error('Invalid filter');
 					const candidate = value as { filter?: unknown; value?: unknown; operator?: unknown };
-					if ((candidate.filter !== 'repo' && candidate.filter !== 'status' && candidate.filter !== 'title' && candidate.filter !== 'id') || typeof candidate.value !== 'string') throw new Error('Invalid filter');
+					if ((candidate.filter !== 'repo' && candidate.filter !== 'status' && candidate.filter !== 'title' && candidate.filter !== 'id' && candidate.filter !== 'author') || typeof candidate.value !== 'string') throw new Error('Invalid filter');
 					const label = labelForFilter(candidate.filter, candidate.value);
 					if (!label) throw new Error('Invalid filter');
 					restored.push({
@@ -223,7 +224,7 @@ function currentSearchToken(query: string): string {
 
 function filterForToken(token: string): SearchFilter | null {
 	const filter = token.slice(0, token.indexOf(':'));
-	return filter === 'repo' || filter === 'status' || filter === 'title' || filter === 'id' ? filter : null;
+	return filter === 'repo' || filter === 'status' || filter === 'title' || filter === 'id' || filter === 'author' ? filter : null;
 }
 
 interface CurrentFilterInput {
@@ -233,7 +234,7 @@ interface CurrentFilterInput {
 }
 
 function currentFilterInput(query: string): CurrentFilterInput | null {
-	const matches = query.matchAll(/(?:^|\s)(repo|status|title|id):/g);
+	const matches = query.matchAll(/(?:^|\s)(repo|status|title|id|author):/g);
 	let current: CurrentFilterInput | null = null;
 	for (const match of matches) {
 		const filter = match[1] as SearchFilter;
@@ -263,6 +264,7 @@ function matchesAppliedFilter(item: PullRequestItem, filter: AppliedFilter): boo
 	if (filter.filter === 'status') return item.state === filter.value;
 	if (filter.filter === 'title') return fuzzyMatch(item.title, filter.value);
 	if (filter.filter === 'id') return item.number === Number(filter.value);
+	if (filter.filter === 'author') return item.author.toLowerCase() === filter.value.toLowerCase();
 
 	const repositoryName = item.repository.toLowerCase();
 	const repository = filter.value.toLowerCase();
@@ -363,11 +365,14 @@ function PullRequestStatusDot({ item }: { item: PullRequestItem }) {
 function PullRequestRow({ item }: { item: PullRequestItem }) {
 	const repositoryParts = item.repository.split('/');
 	const displayRepository = item.repository.length > 22 ? `${item.repository.slice(0, 19)}...` : item.repository;
+	const nativeHref = repositoryParts.length >= 2
+		? `/pull-requests/${encodeURIComponent(repositoryParts[0])}/${encodeURIComponent(repositoryParts.slice(1).join('/'))}/${item.number}`
+		: item.url;
 	return (
-		<a
-			href={item.url}
-			target="_blank"
-			rel="noreferrer noopener"
+		<Link
+			href={nativeHref}
+			prefetch="mount"
+			cacheFor="2m"
 			className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 no-underline transition-colors hover:bg-muted/40"
 		>
 			<span className="relative mt-1 flex size-6 shrink-0 items-center justify-center text-muted-foreground">
@@ -395,7 +400,7 @@ function PullRequestRow({ item }: { item: PullRequestItem }) {
 			<div className="text-sm text-muted-foreground">
 				<span>{formatCompactAge(item.updatedAt)}</span>
 			</div>
-		</a>
+		</Link>
 	);
 }
 
@@ -420,10 +425,12 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 	const searchContainerRef = useRef<HTMLDivElement>(null);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const pageSize = 10;
-	const filteredItems = items.filter(item => {
-		const matchesQuery = fuzzyMatch(`${item.repository} ${item.title} ${item.author} ${item.labels.join(' ')}`, inputWithoutCurrentFilter(inputValue));
-		return matchesScope(item, scope, pullRequests.viewerLogin) && matchesAppliedFilters(item, filters) && matchesQuery;
+	const filterItems = (activeFilters: AppliedFilter[], activeInputValue: string) => items.filter(item => {
+		const matchesQuery = fuzzyMatch(`${item.repository} ${item.title} ${item.author} ${item.labels.join(' ')}`, inputWithoutCurrentFilter(activeInputValue));
+		return matchesScope(item, scope, pullRequests.viewerLogin) && matchesAppliedFilters(item, activeFilters) && matchesQuery;
 	});
+	const filteredItems = filterItems(filters, inputValue);
+	const visibleFilteredItems = filteredItems;
 	const searchToken = currentSearchToken(inputValue);
 	const activeFilterInput = currentFilterInput(inputValue);
 	const editingFilter = filters.find(filter => filter.id === editingFilterId);
@@ -438,6 +445,11 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 			value: repository,
 			label: repository,
 		}));
+		const authors = Array.from(new Set(items.map(item => item.author))).sort().map(author => ({
+			filter: 'author' as const,
+			value: author,
+			label: author,
+		}));
 		if (suggestionMode === 'all' || !searchTokenFilter) return [];
 		const value = activeFilterInput?.filter === searchTokenFilter ? activeFilterInput.value.trim() : '';
 		if (searchTokenFilter === 'title') {
@@ -449,13 +461,13 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 				? [{ filter: 'id' as const, value: id, label: `#${id}` }]
 				: [];
 		}
-		const allSuggestions = [...STATUS_SUGGESTIONS, ...repositories];
+		const allSuggestions = [...STATUS_SUGGESTIONS, ...repositories, ...authors];
 		return allSuggestions.filter(suggestion => suggestion.filter === searchTokenFilter
 			&& (`${suggestion.value} ${suggestion.label}`).toLowerCase().includes(value.toLowerCase()));
 	}, [activeFilterInput, items, searchTokenFilter, suggestionMode]);
-	const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+	const pageCount = Math.max(1, Math.ceil(visibleFilteredItems.length / pageSize));
 	const page = Math.min(state.page, pageCount);
-	const visibleItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
+	const visibleItems = visibleFilteredItems.slice((page - 1) * pageSize, page * pageSize);
 	const menuItemCount = suggestionMode === 'all'
 		? FILTER_OPTIONS.length + 1
 		: searchTokenFilter ? filterSuggestions.length : propertySuggestions.length;
@@ -540,7 +552,7 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 	};
 
 	return (
-		<section aria-label="Pull requests" className="flex flex-col gap-4">
+		<section aria-label="Pull requests" className="pull-request-panel flex flex-col gap-4">
 			<div className="grid gap-3">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<h2 className="display-heading text-base leading-snug text-foreground">Pull requests from the last {pullRequests.windowDays} {pullRequests.windowDays === 1 ? 'day' : 'days'}</h2>
@@ -716,36 +728,38 @@ export default function PullRequestPanel({ pullRequests, persistedFilterState }:
 					</Button>
 				</div>
 			</div>
-			<Card className="py-0">
-				<CardContent className="p-0">
-					{filteredItems.length === 0 ? (
-						<div className="flex min-h-28 items-center justify-center text-muted-foreground">
-							No pull requests match these filters
-						</div>
-					) : (
-						<div>
-							{visibleItems.map(item => (
-								<div
-									key={item.id}
-									data-pull-request-id={item.id}
-									className="border-b border-border last:border-b-0"
-								>
-									<PullRequestRow item={item} />
+			<div className="pull-request-results">
+					<Card className="py-0">
+						<CardContent className="p-0">
+							{visibleFilteredItems.length === 0 ? (
+								<div className="flex min-h-28 items-center justify-center text-muted-foreground">
+									No pull requests match these filters
 								</div>
-							))}
+							) : (
+								<div>
+									{visibleItems.map(item => (
+										<div
+											key={item.id}
+											data-pull-request-id={item.id}
+											className="border-b border-border last:border-b-0"
+										>
+											<PullRequestRow item={item} />
+										</div>
+									))}
+								</div>
+							)}
+						</CardContent>
+					</Card>
+					{pageCount > 1 && (
+						<div className="flex items-center justify-between text-sm text-muted-foreground">
+							<span>Page {page} of {pageCount} · {visibleFilteredItems.length} pull requests</span>
+							<div className="flex gap-1">
+								<Button type="button" variant="outline" size="icon-sm" aria-label="Previous pull request page" disabled={page === 1} onClick={() => dispatch({ type: 'pageChanged', page: page - 1 })}><ChevronLeft /></Button>
+								<Button type="button" variant="outline" size="icon-sm" aria-label="Next pull request page" disabled={page === pageCount} onClick={() => dispatch({ type: 'pageChanged', page: page + 1 })}><ChevronRight /></Button>
+							</div>
 						</div>
 					)}
-				</CardContent>
-			</Card>
-			{pageCount > 1 && (
-				<div className="flex items-center justify-between text-sm text-muted-foreground">
-					<span>Page {page} of {pageCount} · {filteredItems.length} pull requests</span>
-					<div className="flex gap-1">
-						<Button type="button" variant="outline" size="icon-sm" aria-label="Previous pull request page" disabled={page === 1} onClick={() => dispatch({ type: 'pageChanged', page: page - 1 })}><ChevronLeft /></Button>
-						<Button type="button" variant="outline" size="icon-sm" aria-label="Next pull request page" disabled={page === pageCount} onClick={() => dispatch({ type: 'pageChanged', page: page + 1 })}><ChevronRight /></Button>
-					</div>
-				</div>
-			)}
+			</div>
 		</section>
 	);
 }
